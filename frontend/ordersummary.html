@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Order Summary - Chetan Catering</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<style>
+:root{
+  --brand:#EA580C;
+  --dark:#1E293B;
+  --soft:#FFF7ED;
+  --card:#ffffff;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  font-family:Inter,sans-serif;
+  background:linear-gradient(120deg,#FFF7ED,#FDFCF9,#F8FAFC);
+  color:var(--dark);
+  animation:fade .4s ease;
+}
+
+@keyframes fade{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+
+.header{
+  background:#fff;
+  border-bottom:1px solid #E5E7EB;
+  padding:18px 16px;
+}
+.header-inner{
+  max-width:920px;
+  margin:auto;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.brand{
+  font-weight:700;
+  font-size:18px;
+  color:var(--brand);
+}
+.brand span{
+  color:#475569;
+  font-weight:600;
+}
+
+.container{
+  max-width:860px;
+  margin:26px auto;
+  padding:0 16px;
+}
+
+.page-title{
+  text-align:center;
+  margin-bottom:22px;
+}
+.page-title h1{
+  font-size:26px;
+  margin-bottom:6px;
+}
+.page-title p{
+  color:#64748B;
+  font-size:14px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:20px;
+  padding:26px;
+  box-shadow:0 18px 40px rgba(0,0,0,.08);
+}
+
+.section{margin-bottom:28px}
+.section-title{
+  font-weight:700;
+  margin-bottom:12px;
+  padding-bottom:6px;
+  border-bottom:2px solid var(--brand);
+}
+
+.row{
+  display:flex;
+  justify-content:space-between;
+  font-size:14px;
+  margin-bottom:8px;
+  gap:10px;
+}
+.row span:first-child{
+  color:#64748B;
+}
+.row span:last-child{
+  font-weight:500;
+  text-align:right;
+}
+
+.item{
+  display:flex;
+  justify-content:space-between;
+  margin-bottom:8px;
+  font-size:14px;
+}
+
+.total{
+  font-size:17px;
+  font-weight:700;
+}
+
+.payments{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+}
+.pay{
+  flex:1;
+  border:2px solid #E5E7EB;
+  padding:12px;
+  border-radius:12px;
+  text-align:center;
+  cursor:pointer;
+  font-size:14px;
+  background:#fff;
+}
+.pay.active{
+  border-color:var(--brand);
+  background:#FFF7ED;
+}
+
+.actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+.btn{
+  padding:14px;
+  border-radius:12px;
+  border:none;
+  font-weight:600;
+  cursor:pointer;
+  transition:.3s;
+}
+.btn-primary{
+  background:var(--brand);
+  color:#fff;
+}
+.btn-secondary{
+  background:#fff;
+  border:2px solid var(--brand);
+  color:var(--brand);
+}
+.btn:hover{
+  transform:translateY(-2px);
+}
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.6);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:999;
+}
+.modal.active{display:flex}
+.modal-box{
+  background:#fff;
+  padding:32px;
+  border-radius:22px;
+  max-width:420px;
+  width:90%;
+  text-align:center;
+}
+.success{
+  font-size:46px;
+  color:#10B981;
+  margin-bottom:10px;
+}
+
+.footer{
+  margin-top:40px;
+  padding:18px;
+  text-align:center;
+  font-size:13px;
+  color:#64748B;
+}
+
+#pdfReceipt{
+  display:none;
+}
+
+.message{
+  text-align:center;
+  padding:40px;
+  color:#64748B;
+}
+.error-message{
+  color:#EF4444;
+}
+
+.debug-box{
+  margin-top:20px;
+  padding:15px;
+  background:#f0f0f0;
+  border-radius:8px;
+  font-size:12px;
+  font-family:monospace;
+  max-height:200px;
+  overflow-y:auto;
+  display:none;
+}
+
+@media(max-width:640px){
+  .actions{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="brand">Chetan <span>Catering Services</span></div>
+    <div style="font-size:13px;color:#64748B">Order Summary</div>
+  </div>
+</div>
+
+<div class="container">
+
+<div class="page-title">
+  <h1>Order Summary</h1>
+  <p>Please review and confirm your booking details</p>
+</div>
+
+<div class="card">
+
+<div class="section">
+  <div class="section-title">Event Details</div>
+  <div class="row"><span>Date</span><span id="date">-</span></div>
+  <div class="row"><span>Time</span><span id="time">-</span></div>
+  <div class="row"><span>Guests</span><span id="guests">-</span></div>
+  <div class="row"><span>Food Type</span><span id="food">-</span></div>
+  <div class="row"><span>Service Type</span><span id="serviceType">-</span></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Customer Details</div>
+  <div class="row"><span>Name</span><span id="name">-</span></div>
+  <div class="row"><span>Mobile</span><span id="mobile">-</span></div>
+  <div class="row"><span>Email</span><span id="email">-</span></div>
+  <div class="row"><span>Location</span><span id="address" style="white-space:pre-line">-</span></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Selected Dishes</div>
+  <div id="items">
+    <div class="message">Loading dishes...</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Price Summary</div>
+  <div class="row"><span>Subtotal</span><span>₹<span id="sub">0</span></span></div>
+  <div class="row"><span>Service (10%)</span><span>₹<span id="ser">0</span></span></div>
+  <div class="row"><span>GST (5%)</span><span>₹<span id="gst">0</span></span></div>
+  <div class="row total"><span>Total Amount</span><span>₹<span id="tot">0</span></span></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Payment Option</div>
+  <div class="payments">
+    <div class="pay active" onclick="paySelect('Advance',this)">Advance</div>
+    <div class="pay" onclick="paySelect('Full Payment',this)">Full Payment</div>
+    <div class="pay" onclick="paySelect('Cash on Service',this)">Cash on Service</div>
+  </div>
+</div>
+
+<div class="actions">
+  <button class="btn btn-secondary" onclick="location.href='/booking'">← Back</button>
+  <button class="btn btn-primary" id="confirmBtn" onclick="submitBooking()">Confirm Booking</button>
+</div>
+
+</div>
+
+<!-- DEBUG BOX (Remove in production) -->
+<div class="debug-box" id="debugBox"></div>
+
+</div>
+
+<div class="footer">
+  © 2026 Chetan Catering Services · Professional Catering Solutions
+</div>
+
+<div class="modal" id="done">
+  <div class="modal-box">
+    <div class="success">✓</div>
+    <h2>Booking Submitted</h2>
+    <p>
+      Your booking is sent to <b>Chetan Catering</b>.<br>
+      Ingredients list will be shared within <b>24 hours</b>.
+    </p>
+    <div style="display:grid;gap:12px;margin-top:18px">
+      <button class="btn btn-secondary" onclick="downloadReceipt()">Download Receipt</button>
+      <button class="btn btn-primary" onclick="goHome()">Go Home</button>
+    </div>
+  </div>
+</div>
+
+<div id="pdfReceipt" style="display:none;">
+  <div style="
+    max-width:700px;
+    margin:auto;
+    border-radius:20px;
+    padding:28px;
+    box-shadow:0 18px 40px rgba(0,0,0,.08);
+    background:linear-gradient(120deg,#FFF7ED,#FDFCF9,#F8FAFC);
+    font-family:Inter,sans-serif;
+    color:#1E293B;
+  ">
+    <div style="text-align:center; margin-bottom:20px;">
+      <h2 style="margin:0; color:#EA580C;">Chetan Catering Services</h2>
+      <p style="margin:4px 0; font-size:14px;">Order Summary</p>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <h3 style="margin-bottom:8px; border-bottom:2px solid #EA580C; padding-bottom:4px;">Event Details</h3>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Date:</span><span id="pdfDate"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Time:</span><span id="pdfTime"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Guests:</span><span id="pdfGuests"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Food Type:</span><span id="pdfFood"></span></div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <h3 style="margin-bottom:8px; border-bottom:2px solid #EA580C; padding-bottom:4px;">Customer Details</h3>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Name:</span><span id="pdfName"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Mobile:</span><span id="pdfMobile"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Email:</span><span id="pdfEmail"></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Address:</span><span id="pdfAddress"></span></div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <h3 style="margin-bottom:8px; border-bottom:2px solid #EA580C; padding-bottom:4px;">Selected Dishes</h3>
+      <div id="pdfItems"></div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <h3 style="margin-bottom:8px; border-bottom:2px solid #EA580C; padding-bottom:4px;">Price Summary</h3>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Subtotal:</span><span>₹<span id="pdfSub"></span></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Service (10%):</span><span>₹<span id="pdfService"></span></span></div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>GST (5%):</span><span>₹<span id="pdfGST"></span></span></div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;font-size:16px;"><span>Total:</span><span>₹<span id="pdfTotal"></span></span></div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <h3 style="margin-bottom:8px; border-bottom:2px solid #EA580C; padding-bottom:4px;">Payment Option</h3>
+      <p id="pdfPayment"></p>
+    </div>
+
+    <div style="text-align:center; font-size:12px; color:#64748B; margin-top:10px;">
+      © 2026 Chetan Catering Services · Thank you for your booking
+    </div>
+  </div>
+</div>
+
+<script>
+let payment = "Advance";
+
+// Get element references
+const dateEl = document.getElementById("date");
+const timeEl = document.getElementById("time");
+const guestsEl = document.getElementById("guests");
+const foodEl = document.getElementById("food");
+const serviceTypeEl = document.getElementById("serviceType");
+const nameEl = document.getElementById("name");
+const mobileEl = document.getElementById("mobile");
+const emailEl = document.getElementById("email");
+const addressEl = document.getElementById("address");
+const itemsEl = document.getElementById("items");
+const subEl = document.getElementById("sub");
+const serEl = document.getElementById("ser");
+const gstEl = document.getElementById("gst");
+const totEl = document.getElementById("tot");
+
+function paySelect(p, el) {
+  payment = p;
+  document.querySelectorAll(".pay").forEach(x => x.classList.remove("active"));
+  el.classList.add("active");
+}
+
+function debugLog(message, data) {
+  console.log(message, data);
+  // HTML debug box removed, will only log in console now
+}
+
+function load() {
+  console.log("=== LOADING ORDER SUMMARY ===");
+  
+  // Get data from sessionStorage
+  const bookingDataStr = sessionStorage.getItem("bookingData");
+  const cartStr = sessionStorage.getItem("cart");
+  
+  debugLog("Raw bookingData from sessionStorage", bookingDataStr);
+  debugLog("Raw cart from sessionStorage", cartStr);
+  
+  const b = bookingDataStr ? JSON.parse(bookingDataStr) : {};
+  const c = cartStr ? JSON.parse(cartStr) : {};
+
+  console.log("Parsed booking data:", b);
+  console.log("Parsed cart data:", c);
+
+  // Check if data exists
+  if (Object.keys(b).length === 0) {
+    itemsEl.innerHTML = '<div class="message error-message">No booking data found. Please go back and fill the booking form.</div>';
+    return;
+  }
+
+  if (Object.keys(c).length === 0) {
+    itemsEl.innerHTML = '<div class="message error-message">No dishes selected. Please go back and select dishes.</div>';
+    return;
+  }
+
+  // ===== DISPLAY EVENT DETAILS =====
+  dateEl.textContent = b.eventDate || "N/A";
+  timeEl.textContent = b.timeSlot || "N/A";
+  guestsEl.textContent = b.guests || "N/A";
+  foodEl.textContent = b.foodPreference || "N/A";
+  serviceTypeEl.textContent = b.serviceType || "Catering Service";
+
+  // ===== DISPLAY CUSTOMER DETAILS =====
+  console.log("Setting customer name:", b.customerName);
+  nameEl.textContent = b.customerName || "N/A";
+  
+  // Handle mobile number
+  let mobileDisplay = b.mobile || "N/A";
+  if (mobileDisplay !== "N/A") {
+    // Add +91 prefix if not present
+    if (!mobileDisplay.startsWith("+91")) {
+      mobileDisplay = "+91 " + mobileDisplay;
+    } else if (!mobileDisplay.includes(" ")) {
+      // Add space after +91 if not present
+      mobileDisplay = mobileDisplay.replace("+91", "+91 ");
+    }
+  }
+  console.log("Setting mobile:", mobileDisplay);
+  mobileEl.textContent = mobileDisplay;
+  
+  console.log("Setting email:", b.email);
+  emailEl.textContent = b.email || "N/A";
+  
+  // Build complete address display
+  let addressDisplay = "";
+  
+  if (b.village || b.taluk || b.district) {
+    let locationParts = [];
+    if (b.village) locationParts.push(b.village);
+    if (b.taluk) locationParts.push(b.taluk);
+    if (b.district) locationParts.push(b.district);
+    addressDisplay = locationParts.join(", ");
+    
+    if (b.address) {
+      addressDisplay += "\n" + b.address;
+    }
+  } else if (b.eventLocation) {
+    addressDisplay = b.eventLocation;
+  } else if (b.address) {
+    addressDisplay = b.address;
+  } else {
+    addressDisplay = "N/A";
+  }
+  
+  console.log("Setting address:", addressDisplay);
+  addressEl.textContent = addressDisplay;
+
+  // ===== DISPLAY SELECTED DISHES =====
+  let subtotal = 0;
+  itemsEl.innerHTML = "";
+
+  Object.keys(c).forEach(dishId => {
+    const cartItem = c[dishId];
+    
+    let quantity, dishName, dishPrice;
+    
+    if (typeof cartItem === 'object') {
+      quantity = cartItem.quantity;
+      dishName = cartItem.name;
+      dishPrice = cartItem.price;
+    } else {
+      quantity = cartItem;
+      dishName = "Unknown Dish";
+      dishPrice = 0;
+    }
+
+    if (quantity > 0) {
+      const totalPrice = dishPrice * quantity;
+      subtotal += totalPrice;
+      itemsEl.innerHTML += `<div class="item"><span>${dishName} × ${quantity}</span><span>₹${totalPrice}</span></div>`;
+    }
+  });
+
+  if (subtotal === 0) {
+    itemsEl.innerHTML = '<div class="message error-message">No dishes with quantity selected.</div>';
+    return;
+  }
+
+  // ===== CALCULATE PRICING =====
+  const service = Math.round(subtotal * 0.1);
+  const gst = Math.round((subtotal + service) * 0.05);
+  const total = subtotal + service + gst;
+
+  subEl.textContent = subtotal;
+  serEl.textContent = service;
+  gstEl.textContent = gst;
+  totEl.textContent = total;
+  
+  console.log("=== ORDER SUMMARY LOADED SUCCESSFULLY ===");
+}
+
+async function submitBooking() {
+  const confirmBtn = document.getElementById("confirmBtn");
+
+  // Prevent multiple submissions
+  if (confirmBtn.disabled) {
+    return;
+  }
+
+  // Disable button and show loading state
+  confirmBtn.disabled = true;
+  confirmBtn.textContent = "Submitting...";
+
+  const b = JSON.parse(sessionStorage.getItem("bookingData") || "{}");
+  const c = JSON.parse(sessionStorage.getItem("cart") || "{}");
+
+  if (Object.keys(b).length === 0 || Object.keys(c).length === 0) {
+    alert("Missing booking or cart data. Please complete the booking flow.");
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Confirm Booking";
+    return;
+  }
+
+  const selectedDishes = [];
+  Object.keys(c).forEach(dishId => {
+    const cartItem = c[dishId];
+    const quantity = typeof cartItem === 'object' ? cartItem.quantity : cartItem;
+
+    if (quantity > 0) {
+      selectedDishes.push({
+        dish_id: dishId,
+        quantity: quantity
+      });
+    }
+  });
+
+  if (selectedDishes.length === 0) {
+    alert("No dishes selected!");
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Confirm Booking";
+    return;
+  }
+
+  const bookingData = {
+    customer_name: b.customerName,
+    mobile: b.mobile.startsWith('+91') ? b.mobile : '+91' + b.mobile,
+    email: b.email,
+    event_location: b.eventLocation || b.address,
+    map_link: b.mapLink || "",
+    service_type: b.serviceType || "Catering Service",
+    event_date: b.eventDate,
+    time_slot: b.timeSlot,
+    guests: parseInt(b.guests),
+    food_preference: b.foodPreference,
+    selected_dishes: selectedDishes
+  };
+
+  console.log("Submitting booking:", bookingData);
+
+  try {
+    const response = await fetch('/api/bookings/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(bookingData)
+    });
+
+    const result = await response.json();
+    console.log("Booking response:", result);
+
+    if (response.ok && result.success) {
+      preparePDFReceipt();
+      document.getElementById("done").classList.add("active");
+    } else {
+      alert('Booking failed: ' + (result.error || result.message || 'Unknown error'));
+      console.error("Booking error:", result);
+      // Re-enable button on failure
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Confirm Booking";
+    }
+  } catch (error) {
+    console.error('Error submitting booking:', error);
+    alert('Error submitting booking. Please check your connection and try again.');
+    // Re-enable button on error
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = "Confirm Booking";
+  }
+}
+
+function preparePDFReceipt() {
+  document.getElementById("pdfDate").textContent = dateEl.textContent;
+  document.getElementById("pdfTime").textContent = timeEl.textContent;
+  document.getElementById("pdfGuests").textContent = guestsEl.textContent;
+  document.getElementById("pdfFood").textContent = foodEl.textContent;
+  document.getElementById("pdfName").textContent = nameEl.textContent;
+  document.getElementById("pdfMobile").textContent = mobileEl.textContent;
+  document.getElementById("pdfEmail").textContent = emailEl.textContent;
+  document.getElementById("pdfAddress").textContent = addressEl.textContent;
+  document.getElementById("pdfItems").innerHTML = itemsEl.innerHTML;
+  document.getElementById("pdfSub").textContent = subEl.textContent;
+  document.getElementById("pdfService").textContent = serEl.textContent;
+  document.getElementById("pdfGST").textContent = gstEl.textContent;
+  document.getElementById("pdfTotal").textContent = totEl.textContent;
+  document.getElementById("pdfPayment").textContent = payment;
+}
+
+function generatePDF() {
+  const el = document.getElementById("pdfReceipt");
+  el.style.display = "block";
+
+  html2pdf().from(el).set({
+    margin: 10,
+    filename: "Chetan-Catering-Order-Summary.pdf",
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: "mm", format: "a4", orientation: "portrait" }
+  }).save().then(() => el.style.display = "none");
+}
+
+function downloadReceipt(){
+  generatePDF();
+}
+
+function goHome(){
+  sessionStorage.clear();
+  location.href="/";
+}
+
+// Load data when page loads
+window.addEventListener('DOMContentLoaded', function() {
+  console.log("Page loaded, calling load()...");
+  load();
+});
+</script>
+
+</body>
+</html>

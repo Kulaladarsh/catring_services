@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chetan Catering Services | Professional Culinary Excellence</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--primary:#C2410C;
+--gold:#FBBF24;
+--dark:#0F172A;
+--light:#F8FAFC;
+--white:#fff;
+--gray:#64748B;
+--border:#E2E8F0;
+}
+body{
+font-family:'Plus Jakarta Sans',sans-serif;
+background:var(--light);
+color:#1E293B;
+line-height:1.6;
+overflow-x:hidden;
+}
+
+/* ===== Animations ===== */
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px)}to{opacity:1}}
+@keyframes float{50%{transform:translateY(-6px)}}
+
+.reveal{opacity:0;transform:translateY(30px);transition:.8s ease}
+.reveal.active{opacity:1;transform:none}
+
+/* ===== NAV ===== */
+header{background:#fff;box-shadow:0 5px 20px rgba(0,0,0,.05);position:sticky;top:0;z-index:100}
+nav{max-width:1200px;margin:auto;padding:0 20px;height:70px;display:flex;justify-content:space-between;align-items:center}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800}
+.logo span{width:34px;height:34px;background:var(--primary);color:#fff;display:grid;place-items:center;border-radius:8px}
+
+/* ===== HERO SLIDER ===== */
+.hero{
+position: relative;
+height: 500px;
+display: flex;
+align-items: center;
+justify-content: center;
+text-align: center;
+color: #fff;
+overflow: hidden;
+}
+.hero-slider{
+position: absolute;
+inset: 0;
+z-index: 1;
+}
+.slide{
+position: absolute;
+inset: 0;
+opacity: 0;
+transition: opacity 1.5s ease-in-out;
+background-size: cover;
+background-position: center;
+}
+.slide.active{ opacity: 1; }
+.slide::after{
+content: '';
+position: absolute;
+inset: 0;
+background: linear-gradient(120deg,rgba(15,23,42,.75),rgba(15,23,42,.85));
+}
+
+.hero-content{position:relative;z-index:2; padding: 20px;}
+.hero h1{font-size:clamp(26px,4vw,44px);font-weight:800;margin-bottom:12px}
+.hero p{opacity:.9;font-size:15px;margin-bottom:24px}
+
+.rating{
+display:inline-flex;
+gap:6px;
+align-items:center;
+background:rgba(255,255,255,.15);
+padding:6px 16px;
+border-radius:50px;
+margin-bottom:16px;
+animation:float 4s ease-in-out infinite;
+backdrop-filter: blur(5px);
+}
+.rating span{color:var(--gold)}
+
+.btn{padding:12px 28px;border-radius:10px;font-weight:700;text-decoration:none; display: inline-block;}
+.btn-primary{background:linear-gradient(135deg,#C2410C,#F97316);color:#fff}
+
+/* ===== CHEF ===== */
+.chef{
+max-width:1100px;
+margin:-40px auto 70px;
+background:#fff;
+display:flex;
+border-radius:18px;
+overflow:hidden;
+box-shadow:0 20px 40px rgba(0,0,0,.12);
+position: relative;
+z-index: 5;
+}
+.chef-img{
+    flex:1;
+    background:#ddd url('static/istockphoto-1428412216-612x612.jpg') center/cover; /* FIXED PATH */
+}
+.chef-info{flex:1.2;padding:36px}
+.badge{background:#FFF7ED;color:var(--primary);font-size:11px;font-weight:700;padding:6px 14px;border-radius:6px;display:inline-block;margin-bottom:12px}
+
+/* ===== WHY CHOOSE US (RESPONSIVE FLEX) ===== */
+.why{
+max-width:1100px;
+margin:auto;
+padding:60px 20px 20px;
+text-align:center;
+}
+.why h2{font-size:30px;font-weight:800;margin-bottom:40px}
+.why-grid{
+display: flex;
+flex-wrap: wrap;
+gap: 20px;
+justify-content: center;
+}
+.why-card{
+flex: 1 1 calc(25% - 20px);
+min-width: 200px;
+background: var(--white);
+border: 1px solid var(--border);
+border-radius: 20px;
+padding: 30px 20px;
+transition: all 0.3s ease;
+}
+.why-card:hover{
+transform:translateY(-8px);
+border-color: var(--primary);
+box-shadow: 0 15px 30px rgba(0,0,0,.08);
+}
+.why-icon{
+width:50px;height:50px;
+border-radius:14px;
+background: linear-gradient(135deg, #FFF7ED, #FFEDD5);
+color:var(--primary);
+display:grid;place-items:center;
+font-size: 22px;
+margin:0 auto 16px;
+}
+.why-card h4{margin-bottom:8px; font-weight: 700;}
+.why-card p{font-size:13px;color:var(--gray)}
+
+/* ===== MENU ===== */
+.menu{max-width:1200px;margin:auto;padding:40px 20px;text-align:center}
+.menu h2{font-size:32px;font-weight:800;margin-bottom:36px}
+.grid{
+display:flex;
+gap:16px;
+overflow-x:auto;
+scroll-behavior:smooth;
+padding:10px 0;
+scrollbar-width:none;
+-ms-overflow-style:none;
+}
+.grid::-webkit-scrollbar{display:none}
+.grid:hover{scroll-behavior:smooth}
+
+.card{
+background:#fff;border-radius:12px;overflow:hidden;
+border:1px solid var(--border);
+transition:.25s ease;position:relative;
+min-width:180px;max-width:220px;
+}
+.card:hover{
+transform:translateY(-4px);
+box-shadow:0 8px 25px rgba(0,0,0,.1);
+border-color:var(--primary);
+}
+.card img{width:100%;height:140px;object-fit:cover}
+.card-body{padding:12px;text-align:left}
+.card h3{font-size:14px;font-weight:600;margin-bottom:4px;line-height:1.3}
+.card p{font-size:12px;color:var(--gray);margin-bottom:6px;line-height:1.3}
+.price{color:var(--primary);font-weight:700;font-size:13px}
+.tag{
+position:absolute;top:14px;right:14px;
+background:rgba(255,255,255,0.9);
+padding:4px 10px;border-radius:6px;
+font-size:10px;font-weight:800;color:#059669;
+}
+
+/* ===== FOOTER ===== */
+footer{
+background:var(--dark);
+color:#fff;
+padding:40px 20px 20px;
+text-align:center;
+}
+.footer-contact p{opacity:.85;font-size:14px;margin-bottom:6px}
+.social{margin:18px 0;}
+.social a{
+display:inline-flex;
+width:40px;height:40px;
+border-radius:50%;
+background:linear-gradient(135deg,#C2410C,#F97316);
+align-items:center;justify-content:center;
+margin:0 6px;
+color: white;
+text-decoration: none;
+font-size: 12px;
+font-weight: bold;
+}
+
+.bottom{font-size:12px;opacity:.6;margin-top:12px;}
+
+/* ===== Responsive ===== */
+@media(max-width:768px){
+    .hero{height: 400px;}
+    
+    /* Fixed: Ensure the chef container stacks and the image has height */
+    .chef {
+        flex-direction: column;
+        margin: -20px 15px 50px;
+    }
+    
+    .chef-img {
+        display: block;
+        width: 100%;
+        height: 200px; /* This gives the image container height on mobile */
+        min-height: 200px;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .card img{height:160px}
+    
+    .why-card {
+        flex: 1 1 calc(50% - 20px);
+        min-width: 140px;
+        padding: 20px 10px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<nav>
+<div class="logo"><span>C</span> Chetan Catering</div>
+<div style="font-size:13px;color:#64748B">Siddakatte, KA</div>
+</nav>
+</header>
+
+<section class="hero reveal">
+    <div class="hero-slider">
+        <div class="slide active" style="background-image: url('https://images.unsplash.com/photo-1555244162-803834f70033?auto=format&fit=crop&w=1600&q=80')"></div>
+        <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80')"></div>
+        <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1600&q=80')"></div>
+    </div>
+    <div class="hero-content">
+        <div class="rating" id="heroRating"><span>★★★★★</span> Top Rated Catering</div>
+        <h1>Premium Culinary Excellence</h1>
+        <p>Authentic flavors crafted for unforgettable celebrations</p>
+        <a href="/services" class="btn btn-primary">Book Your Event</a>
+    </div>
+</section>
+
+<section class="chef reveal">
+<div class="chef-img"></div>
+<div class="chef-info">
+<span class="badge">Master of Flavors</span>
+<h2>Chef Chetan Poojary</h2>
+<p>"Every dish carries tradition, passion, and perfection. We bring the restaurant experience to your home."</p>
+<div style="margin-top: 15px; display: flex; gap: 15px; font-size: 13px; font-weight: 600;">
+    <span>📍 Siddakatte</span>
+    <span>🏆 Award Winning</span>
+</div>
+</div>
+</section>
+
+<section class="why reveal">
+<h2>Why Choose Us</h2>
+<div class="why-grid">
+    <div class="why-card">
+        <div class="why-icon">★</div>
+        <h4>Premium Quality</h4>
+        <p>Fresh ingredients only</p>
+    </div>
+    <div class="why-card">
+        <div class="why-icon">👨‍🍳</div>
+        <h4>Expert Chefs</h4>
+        <p>15+ years experience</p>
+    </div>
+    <div class="why-card">
+        <div class="why-icon">🎉</div>
+        <h4>Any Event</h4>
+        <p>Weddings & Parties</p>
+    </div>
+    <div class="why-card">
+        <div class="why-icon">⏱</div>
+        <h4>On-Time</h4>
+        <p>Punctual service</p>
+    </div>
+</div>
+</section>
+
+<section class="menu reveal">
+<h2>Our Signature Dishes</h2>
+<div class="grid" id="dishGrid"></div>
+<div style="text-align:center;margin-top:20px;"><a href="/menu" class="btn btn-primary">View Full Menu</a></div>
+</section>
+
+<footer class="reveal">
+<div class="footer-contact">
+<p>📍 Siddakatte, Karnataka</p>
+<p>📞 +91 XXXXXXXX</p>
+</div>
+<div class="social">
+<a href="#">IG</a><a href="#">WA</a><a href="#">FB</a>
+</div>
+<div class="bottom">© 2026 Chetan Catering Services. All Rights Reserved.</div>
+</footer>
+
+<script>
+/* Hero Image Slider */
+const slides = document.querySelectorAll('.slide');
+let currentSlide = 0;
+function nextSlide() {
+    if(slides.length === 0) return;
+    slides[currentSlide].classList.remove('active');
+    currentSlide = (currentSlide + 1) % slides.length;
+    slides[currentSlide].classList.add('active');
+}
+setInterval(nextSlide, 5000);
+
+/* Scroll Reveal */
+const reveal=document.querySelectorAll(".reveal");
+const onScroll=()=>reveal.forEach(e=>{
+if(e.getBoundingClientRect().top<window.innerHeight-80)e.classList.add("active");
+});
+window.addEventListener("scroll",onScroll);onScroll();
+
+/* Dishes Logic */
+fetch("/api/dishes/signature")
+.then(r=>r.json())
+.then(data=>{
+if(data.success && data.dishes){
+const g=document.getElementById("dishGrid");
+data.dishes.forEach(x=>{
+g.innerHTML+=`
+<div class="card">
+<img src="${x.image_url}">
+<div class="card-body">
+<h3>${x.name}</h3>
+<p>${x.category || x.description}</p>
+<div class="price">₹${x.price}</div>
+</div></div>`;
+});
+
+// Auto-scroll animation
+let scrollDirection = 1; // 1 = right, -1 = left
+let scrollSpeed = 1;
+let scrollInterval;
+
+function startAutoScroll() {
+    scrollInterval = setInterval(() => {
+        const container = g;
+        const maxScrollLeft = container.scrollWidth - container.clientWidth;
+
+        if (container.scrollLeft >= maxScrollLeft && scrollDirection === 1) {
+            scrollDirection = -1; // Change direction to left
+        } else if (container.scrollLeft <= 0 && scrollDirection === -1) {
+            scrollDirection = 1; // Change direction to right
+        }
+
+        container.scrollLeft += scrollSpeed * scrollDirection;
+    }, 50);
+}
+
+function stopAutoScroll() {
+    clearInterval(scrollInterval);
+}
+
+// Start auto-scroll when page loads
+startAutoScroll();
+
+// Pause on hover
+g.addEventListener('mouseenter', stopAutoScroll);
+g.addEventListener('mouseleave', startAutoScroll);
+
+// Touch/swipe support for mobile
+let startX;
+let scrollLeft;
+
+g.addEventListener('touchstart', (e) => {
+    startX = e.touches[0].pageX - g.offsetLeft;
+    scrollLeft = g.scrollLeft;
+    stopAutoScroll();
+});
+
+g.addEventListener('touchmove', (e) => {
+    if (!startX) return;
+    const x = e.touches[0].pageX - g.offsetLeft;
+    const walk = (x - startX) * 2;
+    g.scrollLeft = scrollLeft - walk;
+});
+
+g.addEventListener('touchend', () => {
+    startX = null;
+    startAutoScroll();
+});
+}
+});
+</script>
+
+</body>
+</html>

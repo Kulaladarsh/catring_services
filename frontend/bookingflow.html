@@ -1,0 +1,775 @@
+<!DOCTYPE html> 
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Service - Chetan Catering Services</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+--primary:#EA580C;
+--primary-dark:#C2410C;
+--bg:#F9FAFB;
+--white:#fff;
+--text:#0F172A;
+--muted:#64748B;
+--border:#E5E7EB;
+--success:#10B981;
+--error:#EF4444;
+--warning:#F59E0B;
+}
+
+body{
+font-family:Inter,sans-serif;
+background:var(--bg);
+color:var(--text);
+}
+
+/* HEADER */
+header{
+background:#fff;
+border-bottom:1px solid var(--border);
+}
+nav{
+max-width:1200px;
+margin:auto;
+padding:0 16px;
+height:64px;
+display:flex;
+align-items:center;
+justify-content:space-between;
+}
+.logo{
+font-size:20px;
+font-weight:700;
+color:var(--primary);
+text-decoration:none;
+}
+
+.nav-links{
+display:flex;
+gap:24px;
+list-style:none;
+}
+.nav-links a{
+text-decoration:none;
+color:var(--text);
+font-size:14px;
+font-weight:500;
+}
+
+.menu-btn{
+display:none;
+font-size:24px;
+cursor:pointer;
+}
+
+.overlay{
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,.4);
+opacity:0;
+visibility:hidden;
+transition:.3s;
+z-index:90;
+}
+.overlay.active{
+opacity:1;
+visibility:visible;
+}
+
+.sidebar{
+position:fixed;
+top:0;
+left:0;
+width:260px;
+height:100%;
+background:#fff;
+padding:20px;
+z-index:100;
+transform: translateX(-100%);
+transition: transform .3s ease;
+}
+
+.sidebar.active{
+transform: translateX(0);
+}
+
+.sidebar h3{
+margin-bottom:20px;
+}
+.sidebar a{
+display:block;
+padding:12px 0;
+text-decoration:none;
+color:var(--text);
+font-weight:500;
+border-bottom:1px solid var(--border);
+}
+
+@media(max-width:768px){
+.nav-links{display:none}
+.menu-btn{display:block}
+}
+
+.container{
+max-width:720px;
+margin:24px auto;
+padding:0 16px;
+}
+
+.stepper{display:flex;justify-content:space-between;margin-bottom:32px;position:relative}
+.stepper::before{content:'';position:absolute;top:18px;left:0;right:0;height:2px;background:var(--border)}
+.step{flex:1;text-align:center;z-index:1}
+.step-number{width:36px;height:36px;margin:auto;border-radius:50%;border:2px solid var(--border);background:#fff;display:flex;align-items:center;justify-content:center;font-weight:600}
+.step.active .step-number{background:var(--primary);border-color:var(--primary);color:#fff}
+.step.completed .step-number{background:var(--success);border-color:var(--success);color:#fff}
+.step span{font-size:12px;color:var(--muted)}
+
+.form-card{background:#fff;border-radius:14px;padding:26px;border:1px solid var(--border)}
+.form-group{margin-bottom:18px}
+label{font-weight:600;font-size:14px;margin-bottom:6px;display:block}
+input,textarea{width:100%;padding:12px 14px;border-radius:8px;border:1.8px solid var(--border)}
+.step-content{display:none}
+.step-content.active{display:block}
+
+.time-slots,.food-selection{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.time-slot,.food-card{border:1.8px solid var(--border);border-radius:10px;padding:14px;text-align:center;cursor:pointer;position:relative;transition:.2s}
+.time-slot.selected,.food-card.active{border-color:var(--primary);background:#FFF7ED}
+.time-slot.booked{
+border-color:var(--error);
+background:#FEE2E2;
+opacity:0.6;
+cursor:not-allowed;
+}
+.time-slot.available{
+border-color:var(--success);
+}
+.slot-status{
+font-size:10px;
+margin-top:4px;
+font-weight:600;
+}
+.slot-status.booked{color:var(--error)}
+.slot-status.available{color:var(--success)}
+
+.service-selection .service-card{
+border:2px solid var(--border);
+border-radius:12px;
+padding:20px;
+text-align:center;
+cursor:pointer;
+transition:.2s;
+}
+.service-selection .service-card:hover,.service-selection .service-card.selected{
+border-color:var(--primary);
+background:#FFF7ED;
+}
+.service-selection .service-card h3{
+margin:12px 0 8px;
+font-size:18px;
+}
+.service-selection .service-card p{
+font-size:14px;
+color:var(--muted);
+}
+
+.availability-info{
+margin-top:12px;
+padding:12px;
+background:#F0F9FF;
+border-left:4px solid #3B82F6;
+border-radius:6px;
+font-size:13px;
+display:none;
+}
+.availability-info.show{display:block}
+.availability-info.warning{
+background:#FEF3C7;
+border-left-color:#F59E0B;
+}
+.availability-info.error{
+background:#FEE2E2;
+border-left-color:#EF4444;
+}
+.availability-info.success{
+background:#D1FAE5;
+border-left-color:#10B981;
+}
+
+.loading-spinner{
+display:inline-block;
+width:16px;
+height:16px;
+border:2px solid #f3f3f3;
+border-top:2px solid var(--primary);
+border-radius:50%;
+animation:spin 1s linear infinite;
+margin-left:8px;
+}
+@keyframes spin{
+0%{transform:rotate(0deg)}
+100%{transform:rotate(360deg)}
+}
+
+.form-actions{display:flex;gap:12px;margin-top:24px}
+.btn{flex:1;padding:14px;border-radius:10px;font-weight:600;border:none;cursor:pointer;transition:.2s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-secondary{background:#fff;border:1.8px solid var(--border)}
+
+@media(max-width:640px){
+.time-slots,.food-selection{grid-template-columns:1fr}
+.form-actions{flex-direction:column}
+}
+</style>
+</head>
+
+<body>
+
+<header>
+<nav>
+<a href="/" class="logo">Chetan Catering</a>
+
+<ul class="nav-links">
+<li><a href="/">Home</a></li>
+<li><a href="/services">Services</a></li>
+<li><a href="/menu">Menu</a></li>
+</ul>
+
+<div class="menu-btn" onclick="toggleMenu()">☰</div>
+</nav>
+</header>
+
+<div class="overlay" onclick="toggleMenu()"></div>
+<div class="sidebar">
+<h3>Menu</h3>
+<a href="/">Home</a>
+<a href="/services">Services</a>
+<a href="/menu">Menu</a>
+</div>
+
+<div class="container">
+
+<div class="stepper">
+<div class="step active" data-step="1"><div class="step-number">1</div><span>Service</span></div>
+<div class="step" data-step="2"><div class="step-number">2</div><span>Date</span></div>
+<div class="step" data-step="3"><div class="step-number">3</div><span>Time</span></div>
+<div class="step" data-step="4"><div class="step-number">4</div><span>Guests</span></div>
+<div class="step" data-step="5"><div class="step-number">5</div><span>Details</span></div>
+</div>
+
+<!-- STEP 1 -->
+<div class="form-card step-content active" id="step1">
+<h2>Select Service Type</h2>
+<div class="service-selection" style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px;">
+<div class="service-card" onclick="selectService(this,'Catering Service')">
+<div style="font-size:48px;margin-bottom:12px;">🍽️</div>
+<h3>Catering Service</h3>
+<p>Full-service catering with professional staff and complete setup</p>
+</div>
+<div class="service-card" onclick="selectService(this,'Place Cooking')">
+<div style="font-size:48px;margin-bottom:12px;">👨‍🍳</div>
+<h3>Place Cooking</h3>
+<p>Our chefs come to your location and prepare fresh meals on-site</p>
+</div>
+</div>
+<div class="form-actions">
+<button class="btn btn-primary" onclick="nextStep(1)">Continue</button>
+</div>
+</div>
+
+<!-- STEP 2 -->
+<div class="form-card step-content" id="step2">
+<h2>Select Event Date</h2>
+<input type="date" id="eventDate">
+<div class="availability-info" id="dateAvailabilityInfo"></div>
+<div class="form-actions">
+<button class="btn btn-secondary" onclick="prevStep(2)">Back</button>
+<button class="btn btn-primary" onclick="nextStep(2)" id="dateNextBtn">Continue</button>
+</div>
+</div>
+
+<!-- STEP 3 -->
+<div class="form-card step-content" id="step3">
+<h2>Select Time Slot</h2>
+<div class="time-slots" id="timeSlotsContainer">
+<div class="time-slot" data-slot="Morning" onclick="selectTimeSlot(this,'Morning')">
+<div>🌅 Morning</div>
+<div class="slot-status"></div>
+</div>
+<div class="time-slot" data-slot="Afternoon" onclick="selectTimeSlot(this,'Afternoon')">
+<div>🌆 Afternoon</div>
+<div class="slot-status"></div>
+</div>
+<div class="time-slot" data-slot="Night" onclick="selectTimeSlot(this,'Night')">
+<div>🌙 Night</div>
+<div class="slot-status"></div>
+</div>
+</div>
+<div class="availability-info" id="slotAvailabilityInfo"></div>
+<div class="form-actions">
+<button class="btn btn-secondary" onclick="prevStep(3)">Back</button>
+<button class="btn btn-primary" onclick="nextStep(3)" id="slotNextBtn">Continue</button>
+</div>
+</div>
+
+<!-- STEP 4 -->
+<div class="form-card step-content" id="step4">
+<h2>Guests & Food Preference</h2>
+
+<div class="form-group">
+<label>Number of Guests</label>
+<input type="number" id="guestCount" min="10">
+</div>
+
+<label>Food Preference</label>
+<div class="food-selection">
+<label class="food-card"><input type="radio" name="foodType" value="Veg"><span>🥗</span>Veg</label>
+<label class="food-card"><input type="radio" name="foodType" value="Non-Veg"><span>🍗</span>Non-Veg</label>
+<label class="food-card"><input type="radio" name="foodType" value="Both"><span>🍽️</span>Both</label>
+</div>
+
+<div class="form-actions">
+<button class="btn btn-secondary" onclick="prevStep(4)">Back</button>
+<button class="btn btn-primary" onclick="nextStep(4)">Continue</button>
+</div>
+</div>
+
+<!-- STEP 5 -->
+<div class="form-card step-content" id="step5">
+<h2>Customer & Location Details</h2>
+
+<div class="form-group">
+<label>Full Name *</label>
+<input type="text" placeholder="Enter your full name" id="customerName" required>
+</div>
+
+<div class="form-group">
+<label>Mobile Number *</label>
+<input type="tel" placeholder="10-digit mobile number" id="mobile" maxlength="10" required>
+</div>
+
+<div class="form-group">
+<label>Email *</label>
+<input type="email" placeholder="your.email@example.com" id="email" required>
+</div>
+
+<div class="form-group">
+<label>District</label>
+<input type="text" placeholder="Enter district" id="district">
+</div>
+
+<div class="form-group">
+<label>Taluk</label>
+<input type="text" placeholder="Enter taluk" id="taluk">
+</div>
+
+<div class="form-group">
+<label>Village / Area</label>
+<input type="text" placeholder="Enter village or area" id="village">
+</div>
+
+<div class="form-group">
+<label>Full Address *</label>
+<textarea placeholder="Enter complete event address" id="address" rows="3" required></textarea>
+</div>
+
+<div class="form-group">
+<label>Google Maps Link (Optional)</label>
+<input type="url" placeholder="Paste Google Maps link" id="mapLink">
+</div>
+
+<div class="form-actions">
+<button class="btn btn-secondary" onclick="prevStep(5)">Back</button>
+<button class="btn btn-primary" onclick="saveAndProceed()">Select Dishes</button>
+</div>
+</div>
+
+</div>
+
+<script>
+const bookingData = {};
+let selectedService = "";
+let selectedTimeSlot = "";
+let fullyBookedDates = [];
+let currentDateAvailability = {};
+
+// Load on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("📅 Initializing booking system...");
+
+    const savedData = sessionStorage.getItem("bookingData");
+    if (savedData) {
+        const parsed = JSON.parse(savedData);
+        Object.assign(bookingData, parsed);
+        selectedService = bookingData.serviceType || "";
+        selectedTimeSlot = bookingData.timeSlot || "";
+        restoreUIState();
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('eventDate').setAttribute('min', today);
+
+    loadBookedDates();
+    setupDateListener();
+});
+
+function restoreUIState() {
+    if (selectedService) {
+        document.querySelectorAll('.service-card').forEach(card => {
+            const cardText = card.querySelector('h3').textContent;
+            if (cardText === selectedService) {
+                card.classList.add('selected');
+            }
+        });
+    }
+    if (bookingData.eventDate) {
+        document.getElementById('eventDate').value = bookingData.eventDate;
+        loadAvailableSlots(bookingData.eventDate);
+    }
+    if (selectedTimeSlot) {
+        document.querySelectorAll('.time-slot').forEach(slot => {
+            if (slot.getAttribute('data-slot') === selectedTimeSlot) {
+                slot.classList.add('selected');
+            }
+        });
+    }
+    if (bookingData.guests) {
+        document.getElementById('guestCount').value = bookingData.guests;
+    }
+    if (bookingData.foodPreference) {
+        const radio = document.querySelector(`input[name="foodType"][value="${bookingData.foodPreference}"]`);
+        if (radio) {
+            radio.checked = true;
+            radio.closest('.food-card').classList.add('active');
+        }
+    }
+    if (bookingData.customerName) document.getElementById('customerName').value = bookingData.customerName;
+    if (bookingData.mobile) {
+        const mobileValue = bookingData.mobile.replace('+91', '');
+        document.getElementById('mobile').value = mobileValue;
+    }
+    if (bookingData.email) document.getElementById('email').value = bookingData.email;
+    if (bookingData.district) document.getElementById('district').value = bookingData.district;
+    if (bookingData.taluk) document.getElementById('taluk').value = bookingData.taluk;
+    if (bookingData.village) document.getElementById('village').value = bookingData.village;
+    if (bookingData.address) document.getElementById('address').value = bookingData.address;
+    if (bookingData.mapLink) document.getElementById('mapLink').value = bookingData.mapLink;
+}
+
+async function loadBookedDates() {
+    try {
+        const response = await fetch('/api/bookings/booked-dates');
+        const data = await response.json();
+
+        if (data.success) {
+            fullyBookedDates = data.fully_booked_dates || [];
+            console.log("🚫 Fully booked dates:", fullyBookedDates);
+        }
+    } catch (error) {
+        console.error('❌ Error loading booked dates:', error);
+    }
+}
+
+function setupDateListener() {
+    const dateInput = document.getElementById('eventDate');
+    
+    dateInput.addEventListener('change', async function() {
+        const selectedDate = this.value;
+        const infoDiv = document.getElementById('dateAvailabilityInfo');
+        
+        if (!selectedDate) {
+            infoDiv.classList.remove('show');
+            return;
+        }
+
+        if (fullyBookedDates.includes(selectedDate)) {
+            infoDiv.textContent = '⚠️ This date is fully booked. All time slots are unavailable.';
+            infoDiv.className = 'availability-info show error';
+            document.getElementById('dateNextBtn').disabled = true;
+            return;
+        }
+
+        infoDiv.innerHTML = '🔄 Checking availability...<span class="loading-spinner"></span>';
+        infoDiv.className = 'availability-info show';
+        document.getElementById('dateNextBtn').disabled = false;
+
+        await loadAvailableSlots(selectedDate);
+    });
+}
+
+async function loadAvailableSlots(date) {
+    if (!date) return;
+
+    const infoDiv = document.getElementById('dateAvailabilityInfo');
+
+    try {
+        const response = await fetch(`/api/bookings/available-slots/${date}`);
+        const data = await response.json();
+
+        currentDateAvailability = data;
+        console.log("📊 Availability for", date, ":", data);
+
+        if (data.is_fully_booked) {
+            infoDiv.textContent = '🚫 All slots are fully booked for this date.';
+            infoDiv.className = 'availability-info show error';
+        } else if (data.available_slots.length === 3) {
+            infoDiv.textContent = '✅ All time slots available for this date!';
+            infoDiv.className = 'availability-info show success';
+        } else {
+            const availText = data.available_slots.join(', ');
+            infoDiv.textContent = `⚠️ Available slots: ${availText}`;
+            infoDiv.className = 'availability-info show warning';
+        }
+
+        updateTimeSlotUI(data);
+
+    } catch (error) {
+        console.error('❌ Error loading available slots:', error);
+        infoDiv.textContent = '❌ Failed to load availability. Please try again.';
+        infoDiv.className = 'availability-info show error';
+    }
+}
+
+function updateTimeSlotUI(availabilityData) {
+    const slots = document.querySelectorAll('.time-slot');
+
+    slots.forEach(slot => {
+        const slotName = slot.getAttribute('data-slot');
+        const statusDiv = slot.querySelector('.slot-status');
+        
+        const isAvailable = availabilityData.available_slots && availabilityData.available_slots.includes(slotName);
+        const isBooked = availabilityData.booked_slots && availabilityData.booked_slots.includes(slotName);
+
+        slot.classList.remove('selected', 'booked', 'available');
+
+        if (isBooked) {
+            slot.classList.add('booked');
+            slot.style.pointerEvents = 'none';
+            statusDiv.textContent = 'Fully Booked';
+            statusDiv.className = 'slot-status booked';
+        } else if (isAvailable) {
+            slot.classList.add('available');
+            slot.style.pointerEvents = 'auto';
+            statusDiv.textContent = 'Available';
+            statusDiv.className = 'slot-status available';
+            
+            if (slotName === selectedTimeSlot) {
+                slot.classList.add('selected');
+            }
+        }
+    });
+}
+
+function selectService(el, service) {
+    document.querySelectorAll('.service-card').forEach(card => card.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedService = service;
+    bookingData.serviceType = service;
+    sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+}
+
+function nextStep(step){
+    if (step === 1) {
+        if (!selectedService) { 
+            alert('⚠️ Please select a service type'); 
+            return; 
+        }
+        bookingData.serviceType = selectedService;
+    }
+
+    if (step === 2) {
+        const eventDate = document.getElementById('eventDate').value;
+        if (!eventDate) { 
+            alert('⚠️ Please select an event date'); 
+            return; 
+        }
+        if (fullyBookedDates.includes(eventDate)) {
+            alert('🚫 This date is fully booked. Please select another date.');
+            return;
+        }
+        const selectedDate = new Date(eventDate);
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        if (selectedDate < today) { 
+            alert('⚠️ Please select a future date'); 
+            return; 
+        }
+        bookingData.eventDate = eventDate;
+    }
+
+    if (step === 3) {
+        if (!selectedTimeSlot) { 
+            alert('⚠️ Please select a time slot'); 
+            return; 
+        }
+        
+        if (currentDateAvailability.booked_slots && 
+            currentDateAvailability.booked_slots.includes(selectedTimeSlot)) {
+            alert('🚫 This slot is no longer available. Please select another slot.');
+            return;
+        }
+        
+        bookingData.timeSlot = selectedTimeSlot;
+    }
+
+    if (step === 4) {
+        const guests = document.getElementById('guestCount').value;
+        const foodType = document.querySelector('input[name="foodType"]:checked')?.value;
+        if (!guests || guests < 10) { 
+            alert('⚠️ Minimum 10 guests required'); 
+            return; 
+        }
+        if (!foodType) { 
+            alert('⚠️ Please select food preference'); 
+            return; 
+        }
+        bookingData.guests = parseInt(guests);
+        bookingData.foodPreference = foodType;
+    }
+
+    sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+
+    document.getElementById(`step${step}`).classList.remove("active");
+    document.querySelector(`.step[data-step="${step}"]`).classList.add("completed");
+    document.getElementById(`step${step+1}`).classList.add("active");
+    document.querySelector(`.step[data-step="${step+1}"]`).classList.add("active");
+}
+
+function prevStep(step){
+    document.getElementById(`step${step}`).classList.remove("active");
+    document.getElementById(`step${step-1}`).classList.add("active");
+}
+
+function selectTimeSlot(el, slot){
+    if (el.classList.contains('booked')) {
+        alert('🚫 This slot is fully booked. Please select another time.');
+        return;
+    }
+    
+    document.querySelectorAll('.time-slot').forEach(e => e.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedTimeSlot = slot;
+    bookingData.timeSlot = slot;
+    sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+}
+
+document.querySelectorAll('.food-card').forEach(card => {
+    card.addEventListener('click', () => {
+        document.querySelectorAll('.food-card').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+        const foodType = card.querySelector('input').value;
+        bookingData.foodPreference = foodType;
+        sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+    });
+});
+
+async function saveAndProceed() {
+    const customerName = document.getElementById('customerName').value.trim();
+    const mobile = document.getElementById('mobile').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const district = document.getElementById('district').value.trim();
+    const taluk = document.getElementById('taluk').value.trim();
+    const village = document.getElementById('village').value.trim();
+    const address = document.getElementById('address').value.trim();
+    const mapLink = document.getElementById('mapLink').value.trim();
+
+    let validationErrors = [];
+
+    if (!customerName || customerName.length < 2) {
+        validationErrors.push('Please enter a valid name (minimum 2 characters)');
+    }
+
+    if (!mobile || !/^\d{10}$/.test(mobile)) {
+        validationErrors.push('Please enter a valid 10-digit mobile number');
+    }
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        validationErrors.push('Please enter a valid email address');
+    }
+
+    if (!address || address.length < 10) {
+        validationErrors.push('Please provide a complete address (minimum 10 characters)');
+    }
+
+    if (!bookingData.eventDate || !bookingData.timeSlot) {
+        validationErrors.push('Please complete date and time selection');
+    }
+
+    if (!bookingData.guests || bookingData.guests < 10) {
+        validationErrors.push('Minimum 10 guests required');
+    }
+
+    if (validationErrors.length > 0) {
+        alert('⚠️ Please fix the following:\n\n' + validationErrors.join('\n'));
+        return;
+    }
+
+    const checkBtn = event.target;
+    checkBtn.disabled = true;
+    checkBtn.textContent = 'Checking availability...';
+
+    try {
+        const availResponse = await fetch('/api/bookings/check-availability', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                date: bookingData.eventDate,
+                time_slot: bookingData.timeSlot
+            })
+        });
+
+        const availData = await availResponse.json();
+
+        if (!availData.available) {
+            alert('🚫 Sorry, this slot is no longer available. Please go back and select another time.');
+            checkBtn.disabled = false;
+            checkBtn.textContent = 'Select Dishes';
+            return;
+        }
+
+        let locationParts = [];
+        if (village) locationParts.push(village);
+        if (taluk) locationParts.push(taluk);
+        if (district) locationParts.push(district);
+
+        const locationPrefix = locationParts.join(', ');
+        const fullLocation = locationPrefix ? `${locationPrefix}\n${address}` : address;
+
+        bookingData.customerName = customerName;
+        bookingData.mobile = mobile;
+        bookingData.email = email;
+        bookingData.district = district;
+        bookingData.taluk = taluk;
+        bookingData.village = village;
+        bookingData.address = address;
+        bookingData.eventLocation = fullLocation;
+        bookingData.mapLink = mapLink;
+
+        sessionStorage.setItem("bookingData", JSON.stringify(bookingData));
+
+        console.log("✅ Booking data validated and saved");
+        window.location.href = "/dishes";
+
+    } catch (error) {
+        console.error('❌ Availability check failed:', error);
+        alert('⚠️ Unable to verify availability. Please try again.');
+        checkBtn.disabled = false;
+        checkBtn.textContent = 'Select Dishes';
+    }
+}
+
+function toggleMenu(){
+    document.querySelector('.sidebar').classList.toggle('active');
+    document.querySelector('.overlay').classList.toggle('active');
+}
+</script>
+
+</body>
+</html>
