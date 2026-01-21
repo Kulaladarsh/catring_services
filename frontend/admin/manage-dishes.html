@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Dishes | Chetan Catering Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleMobileSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar-placeholder"></div>
+
+<main id="mainContent">
+    <div class="header-top">
+        <h1>Manage Dishes</h1>
+        <div id="currentDate"></div>
+    </div>
+
+    <div id="dishes" class="tab-content active">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title">Add New Menu Item</h2></div>
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Dish Name</label>
+                    <input id="dishName" placeholder="e.g. Paneer Butter Masala">
+                </div>
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="dishCategory"></select>
+                </div>
+                <div class="form-group">
+                    <label>Price (₹)</label>
+                    <input id="dishPrice" type="number" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label>Image URL</label>
+                    <input id="dishImageUrl" placeholder="https://...">
+                </div>
+                <div class="form-group full-width">
+                    <label>Description</label>
+                    <textarea id="dishDescription" rows="2" placeholder="Brief description of the dish..."></textarea>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 24px; border: 2px solid var(--primary-light);">
+                <div class="card-header" style="background: var(--primary-light); margin: -28px -28px 20px; padding: 20px 28px; border-radius: 16px 16px 0 0;">
+                    <h3 class="card-title" style="color: var(--primary); margin: 0;">Dish Ingredients (Base quantities for 10 persons)</h3>
+                </div>
+                <div id="ingredientsContainer"></div>
+                <div style="padding-top: 16px; border-top: 1px solid var(--border); margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="addIngredientRow()">
+                        <i class="fas fa-plus"></i> Add Ingredient
+                    </button>
+                    <button class="btn" style="background: var(--danger); color: white;" onclick="clearAllIngredients()">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+
+            <div style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 15px;">
+                    <input type="checkbox" id="dishAvailable" checked style="width: 18px; height: 18px;"> Available for order
+                </label>
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                    <input id="newCategory" placeholder="New Category" style="min-width: 150px;">
+                    <button class="btn btn-primary" onclick="addCategoryWithUI(this)">Add Category</button>
+                    <button class="btn btn-primary" onclick="addDishWithUI(this)"><i class="fas fa-plus"></i> Add to Menu</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Menu Gallery</h2>
+                <div class="filters" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <input id="filterSearch" placeholder="Search..." onkeyup="filterDishes()" style="padding: 10px 14px; min-width: 200px;">
+                    <select id="filterCategory" onchange="filterDishes()" style="padding: 10px 14px; min-width: 150px;"><option value="">All</option></select>
+                </div>
+            </div>
+            <div class="dishes-grid" id="dishesGrid"></div>
+        </div>
+    </div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/dishes.js"></script>
+
+<script>
+// Load sidebar
+fetch('partials/sidebar.html')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+    });
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadDishes();
+    loadCategories();
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+});
+</script>
+
+</body>
+</html>

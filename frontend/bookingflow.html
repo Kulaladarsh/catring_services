@@ -32,22 +32,53 @@ color:var(--text);
 /* HEADER */
 header{
 background:#fff;
-border-bottom:1px solid var(--border);
+border-bottom:3px solid var(--primary);
+position:sticky;
+top:0;
+z-index:100;
 }
 nav{
 max-width:1200px;
 margin:auto;
-padding:0 16px;
-height:64px;
+padding:12px 20px;
+display:grid;
+grid-template-columns:auto 1fr auto;
+align-items:center;
+gap:14px;
+}
+.logo-section{
 display:flex;
 align-items:center;
-justify-content:space-between;
+gap:10px;
 }
 .logo{
-font-size:20px;
-font-weight:700;
-color:var(--primary);
-text-decoration:none;
+display:flex;
+align-items:center;
+gap:10px;
+}
+.logo img{
+height:42px;
+width:42px;
+border-radius:8px;
+border:2px solid var(--primary);
+padding:2px;
+object-fit:contain;
+}
+.heading-title{
+font-size:18px;
+font-weight:800;
+color:var(--text);
+white-space:nowrap;
+text-align:left;
+}
+.location-tag{
+font-size:13px;
+font-weight:600;
+color:var(--muted);
+background:var(--bg);
+padding:8px 14px;
+border-radius:8px;
+white-space:nowrap;
 }
 
 .nav-links{
@@ -234,15 +265,13 @@ margin-left:8px;
 
 <header>
 <nav>
-<a href="/" class="logo">Chetan Catering</a>
-
-<ul class="nav-links">
-<li><a href="/">Home</a></li>
-<li><a href="/services">Services</a></li>
-<li><a href="/menu">Menu</a></li>
-</ul>
-
-<div class="menu-btn" onclick="toggleMenu()">☰</div>
+<div class="logo-section">
+<div class="logo">
+<img src="static/WhatsApp Image 2026-01-21 at 10.54.12 (1).jpeg" alt="Omsgr Catering Services">
+</div>
+<div class="heading-title">Chetan Catering</div>
+</div>
+<div class="location-tag">📍 Siddakatte,KA</div>
 </nav>
 </header>
 

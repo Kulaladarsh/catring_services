@@ -36,3 +36,4 @@ class Config:
     # Admin Settings
     MAX_LOGIN_ATTEMPTS = 5
     ACCOUNT_LOCK_DURATION_MINUTES = 15
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "adarshkulal09@gmail.com")  # Default admin email

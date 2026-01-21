@@ -272,6 +272,7 @@ def create_booking(booking_data):
         },
         "status": "Pending",
         "ingredients_sent": False,
+        "rating": None,  # Rating from 1-5 stars, submitted after booking completion
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -349,3 +350,46 @@ def mark_ingredients_sent(booking_id):
         return result.modified_count > 0
     except:
         return False
+
+
+def update_booking_rating(booking_id, rating):
+    """
+    Updates the rating for a booking.
+
+    Args:
+        booking_id: The booking ID
+        rating: Rating from 1-5 stars
+
+    Returns:
+        True if updated successfully, False otherwise
+    """
+    try:
+        if not (1 <= rating <= 5):
+            return False
+        result = orders_collection.update_one(
+            {"_id": ObjectId(booking_id)},
+            {"$set": {"rating": rating, "updated_at": datetime.utcnow()}}
+        )
+        return result.modified_count > 0
+    except:
+        return False
+
+
+def get_average_rating():
+    """
+    Calculates the average rating from all rated bookings.
+
+    Returns:
+        Average rating (float) or None if no ratings
+    """
+    try:
+        pipeline = [
+            {"$match": {"rating": {"$ne": None}}},
+            {"$group": {"_id": None, "average": {"$avg": "$rating"}, "count": {"$sum": 1}}}
+        ]
+        result = list(orders_collection.aggregate(pipeline))
+        if result:
+            return round(result[0]["average"], 1), result[0]["count"]
+        return None, 0
+    except:
+        return None, 0

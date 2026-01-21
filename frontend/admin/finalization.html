@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalization | Chetan Catering Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleMobileSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar-placeholder"></div>
+
+<main id="mainContent">
+    <div class="header-top">
+        <h1>Ingredient Finalization</h1>
+        <div id="currentDate"></div>
+    </div>
+
+    <div id="finalization" class="tab-content active">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title">Ingredient Finalization</h2></div>
+            <div style="display: flex; gap: 15px; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap;">
+                <div class="form-group" style="flex-grow: 1; min-width: 250px;">
+                    <label>Select Booking</label>
+                    <select id="finalizationOrderSelect" onchange="loadFinalIngredients()"></select>
+                </div>
+                <button class="btn btn-primary" style="height: 45px;" onclick="generateFinalIngredientsWithUI(this)">Generate Final List</button>
+            </div>
+            <div id="finalizationContent" style="margin-top: 30px;"></div>
+        </div>
+    </div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/finalization.js"></script>
+<script src="js/pdf-share-enhanced.js"></script>
+
+<script>
+// Load sidebar
+fetch('partials/sidebar.html')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+    });
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadFinalizationOrders();
+
+    // Check for booking_id in URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get('booking_id');
+
+    if (bookingId) {
+        // Auto-select the booking in the dropdown
+        const selectElement = document.getElementById('finalizationOrderSelect');
+        selectElement.value = bookingId;
+
+        // Automatically load and generate ingredients for the selected order
+        await loadFinalIngredients();
+    }
+
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+});
+</script>
+
+</body>
+</html>

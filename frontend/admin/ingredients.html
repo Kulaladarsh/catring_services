@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ingredients | Chetan Catering Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleMobileSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar-placeholder"></div>
+
+<main id="mainContent">
+    <div class="header-top">
+        <h1>Ingredient Planning Tool</h1>
+        <div id="currentDate"></div>
+    </div>
+
+    <div id="ingredients" class="tab-content active">
+        <div class="card">
+            <div class="card-header"><h2 class="card-title">Ingredient Planning Tool</h2></div>
+            <div class="alert">
+                <strong>Note:</strong> This tool is for general planning only. For actual bookings, use the "Finalization" tab to generate booking-specific ingredients.
+            </div>
+            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                <div class="form-group" style="flex-grow: 1; min-width: 200px;">
+                    <label>Number of Guests</label>
+                    <input id="guestCount" type="number" placeholder="e.g. 100" min="1">
+                </div>
+                <button class="btn btn-primary" style="height: 45px;" onclick="generateIngredientListWithUI(this)">Generate Planning List</button>
+            </div>
+            <div id="ingredientsPlanning" style="margin-top: 30px;"></div>
+        </div>
+    </div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/ingredients.js"></script>
+
+<script>
+// Load sidebar
+fetch('partials/sidebar.html')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+    });
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+});
+</script>
+
+</body>
+</html>

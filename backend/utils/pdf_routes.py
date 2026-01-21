@@ -80,7 +80,7 @@ def generate_grocery_pdf(booking_details, ingredients_list):
     
     # Title
     elements.append(Paragraph("🥘 GROCERY & INGREDIENTS LIST", title_style))
-    elements.append(Paragraph("Chetan Catering Services", subtitle_style))
+    elements.append(Paragraph("Catrings", subtitle_style))
     elements.append(Spacer(1, 0.2*inch))
     
     # Customer & Event Details Table
@@ -187,7 +187,7 @@ def generate_grocery_pdf(booking_details, ingredients_list):
     
     elements.append(Spacer(1, 0.2*inch))
     elements.append(Paragraph("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", footer_style))
-    elements.append(Paragraph("<b>Chetan Catering Services</b>", footer_style))
+    elements.append(Paragraph("<b>Omsgr Caterings</b>", footer_style))
     elements.append(Paragraph("📍 Siddakatte, Karnataka | 📞 +91 98765 43210", footer_style))
     elements.append(Paragraph("📧 chetanpoojary@gmail.com", footer_style))
     elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}", footer_style))

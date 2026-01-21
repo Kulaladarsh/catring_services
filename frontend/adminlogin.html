@@ -4,54 +4,250 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Login - Chetan Catering Services</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: #F8FAFC; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    .login-card { background: #fff; padding: 40px; border-radius: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
-    h2 { text-align: center; margin-bottom: 24px; color: #EA580C; }
-    form { display: flex; flex-direction: column; gap: 16px; }
-    label { font-weight: 500; color: #1E293B; font-size: 14px; }
-    input[type="text"], input[type="password"] { padding: 12px; border: 2px solid #E2E8F0; border-radius: 8px; font-size: 14px; transition: border-color 0.2s; }
-    input:focus { outline: none; border-color: #EA580C; }
-    .btn { padding: 12px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.3s; font-size: 15px; }
-    .btn-primary { background: #EA580C; color: #fff; }
-    .btn-primary:hover { background: #C2410C; }
-    .flash { color: #F87171; font-size: 14px; text-align: center; margin-bottom: 12px; }
-    .footer { text-align: center; margin-top: 20px; font-size: 12px; color: #64748B; }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #FFF7ED, #F8FAFC);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Center container */
+.main-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+/* Login card */
+.login-card {
+    background: #ffffff;
+    padding: 40px 32px;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+    animation: slideUp 0.6s ease;
+}
+
+/* Chef animation */
+.chef-icon {
+    font-size: 40px;
+    text-align: center;
+    animation: floatChef 2.5s ease-in-out infinite;
+}
+
+h2 {
+    text-align: center;
+    margin: 12px 0 24px;
+    color: #EA580C;
+}
+
+/* Flash */
+.flash {
+    color: #DC2626;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 14px;
+}
+
+/* Form */
+form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1E293B;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 2px solid #E2E8F0;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: #EA580C;
+    box-shadow: 0 0 0 2px rgba(234,88,12,0.15);
+}
+
+/* Show password */
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 13px;
+    cursor: pointer;
+    color: #64748B;
+    user-select: none;
+}
+
+/* Button */
+.btn {
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background: #EA580C;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #C2410C;
+    transform: translateY(-1px);
+}
+
+/* Loading state */
+.btn.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 14px 10px;
+    font-size: 12px;
+    color: #64748B;
+}
+
+/* Animations */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatChef {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+}
+
+/* Mobile */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 32px 24px;
+    }
+}
 </style>
 </head>
+
 <body>
 
-<div class="login-card">
-    <h2>Admin Login</h2>
+<div class="main-wrapper">
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="flash">{{ message }}</div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+    <div class="login-card">
+        <div class="chef-icon">👨‍🍳</div>
+        <h2>Admin Login</h2>
 
-    <form method="POST" action="{{ url_for('admin.admin_login_post') }}">
-        <div>
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" placeholder="Enter your username" required>
-        </div>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
 
-        <div>
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="Enter your password" required>
-        </div>
+        <!-- CONNECTION NOT TOUCHED -->
+        <form method="POST"
+              action="{{ url_for('admin.admin_login_post') }}"
+              onsubmit="return sanitizeForm()">
 
-        <button type="submit" class="btn btn-primary">Login</button>
-    </form>
+            <div>
+                <label for="username">Username</label>
+                <input type="text"
+                       id="username"
+                       name="username"
+                       placeholder="Enter your username"
+                       autocomplete="off"
+                       required>
+            </div>
+
+            <div>
+                <label for="password">Password</label>
+                <div class="input-wrapper">
+                    <input type="password"
+                           id="password"
+                           name="password"
+                           placeholder="Enter your password"
+                           required>
+                    <span class="toggle-password" onclick="togglePassword()">Show</span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="loginBtn">
+                Login
+            </button>
+        </form>
+    </div>
+
 </div>
 
 <div class="footer">
     © 2026 Chetan Catering Services
 </div>
+
+<script>
+/* Sanitization – frontend only */
+function sanitizeForm() {
+    const u = document.getElementById("username");
+    const p = document.getElementById("password");
+    const btn = document.getElementById("loginBtn");
+
+    u.value = u.value.trim().replace(/[<>]/g, "");
+    p.value = p.value.trim().replace(/[<>]/g, "");
+
+    btn.classList.add("loading");
+    btn.innerText = "Logging in...";
+
+    return true;
+}
+
+/* Show / hide password */
+function togglePassword() {
+    const pwd = document.getElementById("password");
+    const toggle = event.target;
+
+    if (pwd.type === "password") {
+        pwd.type = "text";
+        toggle.innerText = "Hide";
+    } else {
+        pwd.type = "password";
+        toggle.innerText = "Show";
+    }
+}
+</script>
 
 </body>
 </html>

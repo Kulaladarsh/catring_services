@@ -51,8 +51,8 @@ def admin_login_post():
 @admin_bp.route('/dashboard')
 @admin_required
 def admin_dashboard():
-    """Admin dashboard page"""
-    return render_template('admindashboard.html')
+    """Admin dashboard page - redirect to new modular structure"""
+    return redirect('/admin/index.html')
 
 
 @admin_bp.route('/logout')

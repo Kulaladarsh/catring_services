@@ -34,9 +34,22 @@ def ordersummary():
 def admin_login():
     # If already logged in → go to dashboard
     if session.get("admin_logged_in"):
-        return redirect(url_for("admin.admin_dashboard"))
+        return redirect("/admin/index.html")
 
     return render_template("adminlogin.html")
+
+# Admin dashboard pages (new modular structure)
+@frontend_bp.route("/admin/<path:filename>")
+def admin_pages(filename):
+    """Serve admin dashboard pages"""
+    if not session.get("admin_logged_in"):
+        return redirect(url_for("frontend_bp.admin_login"))
+
+    # Allow access to admin files
+    if filename.endswith('.html') or filename.endswith('.css') or filename.endswith('.js'):
+        return send_from_directory("frontend/admin", filename)
+
+    return {"error": "File not found"}, 404
 
 
 # Dish selection page (alias for menu)

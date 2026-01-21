@@ -121,7 +121,7 @@ def test():
 @app.route("/hi")
 def say_hi():
     return {
-        "message": "Hi! Welcome to Chetan Catering Services",
+        "message": "Hi! Welcome to Catrings",
         "status": "Backend Active",
         "version": "2.0 - With Ingredients & PDF Features"
     }

@@ -75,7 +75,7 @@ For queries, contact:
 📞 +91 98765 43210
 
 Thank you for choosing us!
-- Chetan Catering Services
+- Omsgr Caterings
     """
     
     return send_whatsapp_message(phone_number, message)
@@ -93,7 +93,7 @@ def send_ingredients_whatsapp(phone_number, customer_name, booking_details, ingr
         ingredients_text = ingredients_list
     
     message = f"""
-📋 *Ingredients List - Chetan Catering Services*
+📋 *Ingredients List - Catrings*
 
 Dear {customer_name},
 
@@ -110,7 +110,7 @@ Please keep these ready at your venue.
 Questions? Call us:
 📞 +91 98765 43210
 
-- Chetan Catering Services
+- Catrings
     """
     
     return send_whatsapp_message(phone_number, message)

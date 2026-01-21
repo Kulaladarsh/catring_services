@@ -45,7 +45,7 @@ def generate_ingredients_pdf(booking_details, ingredients_list):
     # ==========================================
     # 1. BUSINESS HEADER
     # ==========================================
-    story.append(Paragraph("🍽️ Chetan Catering Services", title_style))
+    story.append(Paragraph("🍽️ Catrings", title_style))
     story.append(Paragraph("Ingredients List & Order Summary", styles['Heading3']))
     story.append(Spacer(1, 0.3*inch))
     
@@ -151,14 +151,22 @@ def generate_ingredients_pdf(booking_details, ingredients_list):
     categories = {
         'Vegetables': [],
         'Non-Vegetarian': [],
-        'Spices': [],
-        'Others': []
+        'Spices / Masala': [],
+        'Dairy': [],
+        'Fruit': [],
+        'Dry Fruits': [],
+        'Grain': [],
+        'Herbs': [],
+        'Beverages': [],
+        'Oil and Fats': [],
+        'Bakery & Sweets': [],
+        'Other': []
     }
-    
+
     for ing in ingredients_list:
-        category = ing.get('category', 'Others')
+        category = ing.get('category', 'Other')
         if category not in categories:
-            category = 'Others'
+            category = 'Other'
         categories[category].append(ing)
     
     # Render each category
@@ -242,8 +250,8 @@ def generate_ingredients_pdf(booking_details, ingredients_list):
     # ==========================================
     footer_text = """
     <para align=center>
-    <b>Thank you for choosing Chetan Catering Services!</b><br/>
-    For any queries, contact us at: info@chetancatering.com | +91-XXXXXXXXXX<br/>
+    <b>Thank you for choosing Omsgr Caterings!</b><br/>
+    For any queries, contact us at: info@omsgcaterings.com | +91-XXXXXXXXXX<br/>
     <i>Generated on: """ + datetime.now().strftime('%B %d, %Y at %I:%M %p') + """</i>
     </para>
     """

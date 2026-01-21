@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify, session
 from backend.db import ingredients_collection, orders_collection, final_ingredients_collection, dishes_collection
+from backend.utils.unit_helper import to_base_unit, to_display_unit
 from functools import wraps
 from bson import ObjectId
 from datetime import datetime
@@ -226,8 +227,8 @@ def generate_final_ingredients(booking_id):
         "dozen", "slice", "slices", "can", "cans", "bottle", "bottles"
     }
 
-    # Aggregate ingredients by category
-    ingredient_totals = defaultdict(lambda: {"quantity": 0, "unit": None, "category": None})
+    # Aggregate ingredients by category (in base units)
+    ingredient_totals = defaultdict(lambda: {"quantity": 0, "base_unit": None, "category": None})
 
     for dish_item in dishes:
         dish_name = dish_item.get("dish_name", "")
@@ -242,21 +243,23 @@ def generate_final_ingredients(booking_id):
             base_qty_for_10 = ing.get("quantity_per_plate", ing.get("per_plate", 0))
             ing_unit = ing.get("unit", "").lower().strip()
 
-            # Preserve original unit if it's valid, otherwise try to infer from name
-            if ing_unit in VALID_UNITS:
-                final_unit = ing_unit
-            elif "milk" in ing_name.lower():
-                final_unit = "litre"
-            elif any(word in ing_name.lower() for word in ["oil", "ghee", "butter"]):
-                final_unit = "ml"
-            elif any(word in ing_name.lower() for word in ["rice", "flour", "sugar", "salt"]):
-                final_unit = "kg"
-            elif any(word in ing_name.lower() for word in ["onion", "potato", "tomato", "vegetable"]):
-                final_unit = "kg"
-            elif any(word in ing_name.lower() for word in ["cumin", "turmeric", "chili", "coriander"]):
-                final_unit = "gm"
-            else:
-                final_unit = "gm"  # Default fallback
+            # Convert to base unit for consistent calculations
+            try:
+                converted_qty, base_unit = to_base_unit(base_qty_for_10, ing_unit)
+            except ValueError:
+                # If conversion fails, try to infer unit from name
+                if "milk" in ing_name.lower():
+                    converted_qty, base_unit = to_base_unit(base_qty_for_10, "ltr")
+                elif any(word in ing_name.lower() for word in ["oil", "ghee", "butter"]):
+                    converted_qty, base_unit = to_base_unit(base_qty_for_10, "ml")
+                elif any(word in ing_name.lower() for word in ["rice", "flour", "sugar", "salt"]):
+                    converted_qty, base_unit = to_base_unit(base_qty_for_10, "kg")
+                elif any(word in ing_name.lower() for word in ["onion", "potato", "tomato", "vegetable"]):
+                    converted_qty, base_unit = to_base_unit(base_qty_for_10, "kg")
+                elif any(word in ing_name.lower() for word in ["cumin", "turmeric", "chili", "coriander"]):
+                    converted_qty, base_unit = to_base_unit(base_qty_for_10, "gm")
+                else:
+                    converted_qty, base_unit = to_base_unit(base_qty_for_10, "gm")  # Default fallback
 
             # Determine category based on ingredient name
             ing_category = ing.get("category", "")
@@ -264,38 +267,67 @@ def generate_final_ingredients(booking_id):
                 ing_name_lower = ing_name.lower()
                 if any(word in ing_name_lower for word in ["chicken", "mutton", "fish", "egg", "meat"]):
                     ing_category = "Non-Vegetarian"
-                elif any(word in ing_name_lower for word in ["onion", "potato", "tomato", "carrot", "beans", "peas", "vegetable"]):
+                elif any(word in ing_name_lower for word in ["onion", "potato", "tomato", "carrot", "beans", "peas", "vegetable", "ginger", "garlic", "mint", "coriander", "curry leaves", "tamarind"]):
                     ing_category = "Vegetables"
-                elif any(word in ing_name_lower for word in ["cumin", "turmeric", "chili", "coriander", "garam", "masala", "spices"]):
-                    ing_category = "Spices"
+                elif any(word in ing_name_lower for word in ["cumin", "turmeric", "chili", "coriander", "garam", "masala", "spices", "mustard", "sambar", "biryani"]):
+                    ing_category = "Spices / Masala"
+                elif any(word in ing_name_lower for word in ["milk", "cheese", "yogurt", "butter", "cream", "paneer"]):
+                    ing_category = "Dairy"
+                elif any(word in ing_name_lower for word in ["apple", "banana", "orange", "fruit", "mango", "grapes"]):
+                    ing_category = "Fruit"
+                elif any(word in ing_name_lower for word in ["rice", "wheat", "flour", "grain", "oats", "barley"]):
+                    ing_category = "Grain"
+                elif any(word in ing_name_lower for word in ["basil", "oregano", "thyme", "rosemary", "herb"]):
+                    ing_category = "Herbs"
+                elif any(word in ing_name_lower for word in ["tea", "coffee", "juice", "beverage", "soda"]):
+                    ing_category = "Beverages"
+                elif any(word in ing_name_lower for word in ["oil", "ghee", "fat", "butter", "lard"]):
+                    ing_category = "Oil and Fats"
+                elif any(word in ing_name_lower for word in ["sugar", "cake", "bread", "cookie", "sweet", "bakery"]):
+                    ing_category = "Bakery & Sweets"
                 else:
-                    ing_category = "Others"
+                    ing_category = "Other"
 
-            # Scaling formula: (base_quantity_for_10 / 10) × number_of_guests × dish_quantity
-            # This preserves the unit type (kg stays kg, litre stays litre, etc.)
-            scaled_qty = (base_qty_for_10 / 10) * guests * quantity
+            # Scaling formula: (converted_quantity_for_10 / 10) × number_of_guests × dish_quantity
+            # All calculations done in base units for consistency
+            scaled_qty = (converted_qty / 10) * guests * quantity
 
-            # Aggregate by ingredient name
+            # Aggregate by ingredient name (in base units)
             if ing_name in ingredient_totals:
                 ingredient_totals[ing_name]["quantity"] += scaled_qty
             else:
                 ingredient_totals[ing_name]["quantity"] = scaled_qty
-                ingredient_totals[ing_name]["unit"] = final_unit
+                ingredient_totals[ing_name]["base_unit"] = base_unit
                 ingredient_totals[ing_name]["category"] = ing_category
 
-    # Convert to list format with categories
+    # Convert to list format with categories (convert back to display units)
     final_ingredients = []
     for ing_name, data in ingredient_totals.items():
+        # Convert base unit quantity back to appropriate display units
+        display_qty, display_unit = to_display_unit(data["quantity"], data["base_unit"])
+
         final_ingredients.append({
             "name": ing_name,
-            "quantity": round(data["quantity"], 2),
-            "unit": data["unit"],  # Preserve original unit
+            "quantity": display_qty,
+            "unit": display_unit,
             "category": data["category"],
             "checked": True  # Default to checked
         })
 
-    # Sort by category order: Vegetables, Non-Vegetarian, Spices, Others
-    category_order = {"Vegetables": 0, "Non-Vegetarian": 1, "Spices": 2, "Others": 3}
+    # Sort by category order
+    category_order = {
+        "Vegetables": 0,
+        "Non-Vegetarian": 1,
+        "Spices / Masala": 2,
+        "Dairy": 3,
+        "Fruit": 4,
+        "Grain": 5,
+        "Herbs": 6,
+        "Beverages": 7,
+        "Oil and Fats": 8,
+        "Bakery & Sweets": 9,
+        "Other": 10
+    }
     final_ingredients.sort(key=lambda x: category_order.get(x["category"], 4))
 
     return final_ingredients
@@ -714,8 +746,57 @@ def share_booking_pdf(booking_id):
         
 
     except Exception as e:
-
         print(f"Error sharing PDF: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
+
+@ingredients_bp.route("/booking/<booking_id>/send-pdf-email", methods=["POST"])
+@admin_required
+def send_pdf_to_admin_email(booking_id):
+    """
+    Send PDF to predefined admin Gmail address automatically
+    """
+    try:
+        # Get booking details
+        booking = orders_collection.find_one({"_id": ObjectId(booking_id)})
+        if not booking:
+            return jsonify({"error": "Booking not found"}), 404
+
+        # Get final ingredients
+        final_ingredients = final_ingredients_collection.find_one({"booking_id": booking_id})
+        if not final_ingredients or not final_ingredients.get("approved_by_admin"):
+            return jsonify({"error": "Final ingredients not approved yet"}), 400
+
+        # Generate PDF
+        from backend.utils.pdf_generator import generate_ingredients_pdf
+        booking['_id'] = str(booking['_id'])
+        pdf_buffer = generate_ingredients_pdf(booking, final_ingredients.get("ingredients", []))
+
+        # Send to predefined admin email (from environment variables)
+        import os
+        admin_email = os.getenv("ADMIN_EMAIL")  # Predefined admin Gmail address
+
+        if not admin_email:
+            return jsonify({"error": "Admin email not configured"}), 500
+
+        # Use existing email function but send to admin email
+        from backend.utils.email import send_pdf_via_email
+        email_sent = send_pdf_via_email(
+            customer_email=admin_email,  # Send to admin email instead of customer
+            customer_name="Admin",  # Generic name for admin
+            pdf_buffer=pdf_buffer,
+            booking_id=booking_id
+        )
+
+        if email_sent:
+            return jsonify({
+                "success": True,
+                "message": "PDF sent to admin email successfully"
+            })
+        else:
+            return jsonify({"error": "Failed to send email"}), 500
+
+    except Exception as e:
+        print(f"Error sending PDF to admin email: {str(e)}")
         return jsonify({"error": str(e)}), 500
 

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Availability | Chetan Catering Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleMobileSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar-placeholder"></div>
+
+<main id="mainContent">
+    <div class="header-top">
+        <h1>📅 Availability Calendar</h1>
+        <div id="currentDate"></div>
+        <p class="subtitle" style="color: var(--text-muted); margin-bottom: 24px; font-size: 15px;">Real-time booking status for next 30 days</p>
+    </div>
+
+    <div class="stats-grid" id="statsGrid">
+        <div class="stat-card">
+            <div class="stat-label">Total Dates</div>
+            <div class="stat-value">30</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Fully Available</div>
+            <div class="stat-value" style="color: var(--success);" id="availableCount">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Partially Booked</div>
+            <div class="stat-value" style="color: var(--warning);" id="partialCount">-</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Fully Booked</div>
+            <div class="stat-value" style="color: var(--danger);" id="fullyBookedCount">-</div>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-item">
+            <div class="legend-color" style="background:#ECFDF5;border:2px solid #10B981;"></div>
+            <span>All Slots Available</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#FEF3C7;border:2px solid #F59E0B;"></div>
+            <span>Partially Booked</span>
+        </div>
+        <div class="legend-item">
+            <div class="legend-color" style="background:#FEE2E2;border:2px solid #EF4444;"></div>
+            <span>Fully Booked</span>
+        </div>
+    </div>
+
+    <div class="filter-bar">
+        <button class="filter-btn active" onclick="filterCalendar('all',this)">All Dates</button>
+        <button class="filter-btn" onclick="filterCalendar('available',this)">Available Only</button>
+        <button class="filter-btn" onclick="filterCalendar('partially',this)">Partially Booked</button>
+        <button class="filter-btn" onclick="filterCalendar('fully-booked',this)">Fully Booked</button>
+    </div>
+
+    <div class="loading" id="loading">Loading calendar data...</div>
+
+    <div class="calendar-grid" id="calendarGrid"></div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/availability.js"></script>
+
+<script>
+// Load sidebar
+fetch('partials/sidebar.html')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+    });
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadCalendar();
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+});
+</script>
+
+</body>
+</html>

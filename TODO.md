@@ -1,19 +1,12 @@
-# TODO: Fix Ingredient Details in PDF Generation
-
-## Current Issue
-- Ingredients are fetched dynamically from database in dictionary format
-- PDF generation function expects string format like "Rice - 5 kg"
-- This mismatch causes ingredient details to not display correctly in PDFs
+# Dynamic Rating System Implementation
 
 ## Tasks
-- [ ] Update `generate_grocery_pdf` function in `backend/utils/pdf_routes.py` to handle dictionary-formatted ingredients
-- [ ] Add logic to convert dictionary ingredients to string format for display
-- [ ] Ensure backward compatibility with existing string format
-- [ ] Test PDF generation with dictionary-formatted ingredients
+- [x] Add 'rating' field to booking model in backend/models.py
+- [x] Create API endpoints in backend/routes.py: POST /api/rate-booking/<booking_id> and GET /api/average-rating
+- [x] Update frontend/landingpage.html to fetch and display average rating dynamically
+- [x] Add rating form in frontend/ordersummary.html after successful booking
+- [x] Test rating submission and average calculation
+- [x] Ensure ratings only after booking completion
 
-## Files to Edit
-- `backend/utils/pdf_routes.py` (only the ingredients processing logic)
-
-## Notes
-- Do not touch other PDF details, only fix ingredient fetching
-- Maintain existing PDF layout and other sections
+## Summary
+Successfully implemented a dynamic rating system where customers can rate their catering experience after successful booking completion. The average rating is displayed on the landing page and updates in real-time.

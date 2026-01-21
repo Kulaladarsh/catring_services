@@ -98,6 +98,9 @@ def validate_ingredients(ingredients):
     if not isinstance(ingredients, list):
         return False
 
+    valid_units = ["g", "kg", "oz", "lb", "mg", "ml", "l", "litre", "cup", "tbsp", "tsp", "pcs", "packet", "bunch", "dozen", "slice", "can", "bottle"]
+    valid_categories = ["Vegetables", "Non-Vegetarian", "Spices / Masala", "Dairy", "Fruit", "Dry Fruits", "Grain", "Herbs", "Beverages", "Oil and Fats", "Bakery & Sweets", "Other"]
+
     for ing in ingredients:
         if not isinstance(ing, dict):
             return False
@@ -105,9 +108,9 @@ def validate_ingredients(ingredients):
             return False
         if not isinstance(ing.get("per_plate", 0), (int, float)) or ing["per_plate"] <= 0:
             return False
-        if ing.get("unit", "").strip() not in ["kg", "gm", "litre", "pcs"]:
+        if ing.get("unit", "").strip() not in valid_units:
             return False
-        if ing.get("category", "").strip() not in ["Vegetables", "Non-Vegetarian", "Spices", "Others"]:
+        if ing.get("category", "").strip() not in valid_categories:
             return False
 
     return True

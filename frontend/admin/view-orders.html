@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Orders | Chetan Catering Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleMobileSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar-placeholder"></div>
+
+<main id="mainContent">
+    <div class="header-top">
+        <h1>Order Management</h1>
+        <div id="currentDate"></div>
+    </div>
+
+    <div id="orders" class="tab-content active">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Order Management</h2>
+                <div class="filters" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">From Date</label>
+                        <input type="date" id="filterFromDate" onchange="applyFilters()" style="padding: 10px 14px;">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">To Date</label>
+                        <input type="date" id="filterToDate" onchange="applyFilters()" style="padding: 10px 14px;">
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Time Slot</label>
+                        <select id="filterTimeSlot" onchange="applyFilters()" style="padding: 10px 14px;">
+                            <option value="">All Time Slots</option>
+                            <option value="Morning">Morning</option>
+                            <option value="Afternoon">Afternoon</option>
+                            <option value="Evening">Evening</option>
+                            <option value="Night">Night</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Status</label>
+                        <select id="filterStatus" onchange="applyFilters()" style="padding: 10px 14px;">
+                            <option value="">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="APPROVED">Approved</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="clearFiltersWithUI(this)" style="padding: 10px 18px;">Clear Filters</button>
+                </div>
+            </div>
+            <div class="loading" id="ordersLoading" style="display: none;">Loading orders...</div>
+            <div class="error-message" id="ordersError" style="display: none;"></div>
+            <div class="table-wrapper">
+                <table class="orders-table" id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>Booking ID</th>
+                            <th>Customer</th>
+                            <th>Event Date</th>
+                            <th>Guests</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/orders.js"></script>
+
+<script>
+// Load sidebar
+fetch('partials/sidebar.html')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+    });
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadOrders();
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+});
+</script>
+
+</body>
+</html>

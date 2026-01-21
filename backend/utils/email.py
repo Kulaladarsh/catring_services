@@ -26,7 +26,7 @@ def send_pdf_via_email(customer_email, customer_name, pdf_buffer, booking_id):
         body = f"""
 Dear {customer_name},
 
-Thank you for choosing Chetan Catering Services!
+Thank you for choosing Omsgr Caterings!
 
 Please find attached your complete order summary and ingredients list.
 
@@ -38,7 +38,7 @@ Order Details:
 If you have any questions, feel free to contact us.
 
 Best regards,
-Chetan Catering Services Team
+Omsgr Caterings Team
 
 ---
 This is an automated email. Please do not reply to this address.
@@ -86,7 +86,7 @@ def send_booking_confirmation(customer_email, customer_name, booking_details):
         body = f"""
 Dear {customer_name},
 
-Thank you for choosing Chetan Catering Services!
+Thank you for choosing Omsgr Caterings!
 
 Your booking has been confirmed successfully.
 
@@ -101,7 +101,7 @@ Booking Details:
 We will contact you soon with further details and the ingredients list.
 
 Best regards,
-Chetan Catering Services Team
+Omsgr Caterings Team
 
 ---
 This is an automated email. Please do not reply to this address.
@@ -160,7 +160,7 @@ Please ensure all ingredients are fresh and ready for preparation.
 If you have any questions, feel free to contact us.
 
 Best regards,
-Chetan Catering Services Team
+Omsgr Caterings Team
 
 ---
 This is an automated email. Please do not reply to this address.

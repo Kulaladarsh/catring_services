@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Chetan Catering Services</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.4.0/css/all.css" crossorigin="anonymous">
+    <link rel="stylesheet" href="css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<button class="sidebar-toggle" onclick="toggleMobileSidebar()">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Sidebar -->
+<div id="sidebar-placeholder"></div>
+
+<main id="mainContent">
+    <div class="welcome-section">
+        <div class="welcome-content">
+            <h1>Welcome back, Admin! 👋</h1>
+            <p>Here's what's happening with your catering business today</p>
+        </div>
+        <div class="welcome-stats">
+            <div class="welcome-stat">
+                <i class="fas fa-clock"></i>
+                <span id="currentTime"></span>
+            </div>
+            <div class="welcome-stat">
+                <i class="fas fa-calendar"></i>
+                <span id="currentDate"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="quick-actions">
+        <h3>Quick Actions</h3>
+        <div class="actions-grid">
+            <button class="action-btn" onclick="navigateTo('manage-dishes.html')">
+                <i class="fas fa-plus"></i>
+                <span>Add New Dish</span>
+            </button>
+            <button class="action-btn" onclick="navigateTo('view-orders.html')">
+                <i class="fas fa-shopping-bag"></i>
+                <span>View Orders</span>
+            </button>
+            <button class="action-btn" onclick="navigateTo('ingredients.html')">
+                <i class="fas fa-list-check"></i>
+                <span>Check Ingredients</span>
+            </button>
+            <button class="action-btn" onclick="navigateTo('availability.html')">
+                <i class="fas fa-calendar-alt"></i>
+                <span>Set Availability</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="stat-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+                <div class="stat-text">
+                    <div class="stat-label">Total Orders</div>
+                    <div class="stat-value" id="statOrders">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="stat-icon">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <div class="stat-text">
+                    <div class="stat-label">Active Dishes</div>
+                    <div class="stat-value" id="statDishes">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="stat-icon">
+                    <i class="fas fa-rupee-sign"></i>
+                </div>
+                <div class="stat-text">
+                    <div class="stat-label">Total Revenue</div>
+                    <div class="stat-value" id="statRevenue">₹0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-text">
+                    <div class="stat-label">Pending Bookings</div>
+                    <div class="stat-value" id="statPending" style="color: var(--warning);">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-text">
+                    <div class="stat-label">Active Users</div>
+                    <div class="stat-value" id="statActiveUsers">0</div>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-content">
+                <div class="stat-icon">
+                    <i class="fas fa-eye"></i>
+                </div>
+                <div class="stat-text">
+                    <div class="stat-label">Daily Visitors</div>
+                    <div class="stat-value" id="statVisitors">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="charts-section">
+        <div class="chart-row">
+            <div class="chart-card">
+                <h3>📈 Monthly Earnings</h3>
+                <canvas id="earningsChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>📊 Order Status Distribution</h3>
+                <canvas id="statusChart"></canvas>
+            </div>
+        </div>
+
+        <div class="chart-row">
+            <div class="chart-card">
+                <h3>👥 Daily Visitors (Last 30 Days)</h3>
+                <canvas id="visitorsChart"></canvas>
+            </div>
+            <div class="chart-card">
+                <h3>📋 Order Trends</h3>
+                <canvas id="ordersChart"></canvas>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="js/common.js"></script>
+<script src="js/dashboard.js"></script>
+
+<script>
+// Load sidebar
+fetch('partials/sidebar.html')
+    .then(response => response.text())
+    .then(html => {
+        document.getElementById('sidebar-placeholder').innerHTML = html;
+    });
+
+// Function to update time
+function updateTime() {
+    const now = new Date();
+    document.getElementById('currentTime').textContent = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadStats();
+    updateTime();
+    setInterval(updateTime, 1000); // Update time every second
+
+    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+});
+</script>
+
+</body>
+</html>

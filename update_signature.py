@@ -2,7 +2,7 @@ import sys
 sys.path.append('.')
 from backend.db import dishes_collection
 
-# Mark all dishes as signature
+# Mark all dishes as signaturez
 result = dishes_collection.update_many(
     {},
     {'$set': {'is_signature': True}}

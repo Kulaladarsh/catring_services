@@ -15,9 +15,13 @@
 body{font-family:'Inter',sans-serif;background:var(--bg-light);color:var(--text-dark);padding-bottom:140px;}
 z
 /* HEADER & SIDEBAR */
-header{background:var(--white);box-shadow:0 1px 3px rgba(0,0,0,0.1);}
-nav{max-width:1200px;margin:auto;padding:0 20px;height:70px;display:flex;align-items:center;justify-content:space-between;}
-.logo{font-size:22px;font-weight:700;color:var(--primary);text-decoration:none;}
+header{background:var(--white);box-shadow:0 1px 3px rgba(0,0,0,0.1);position:sticky;top:0;z-index:100;border-bottom:3px solid var(--primary);}
+nav{max-width:1200px;margin:auto;padding:12px 20px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;}
+.logo-section{display:flex;align-items:center;gap:10px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo img{height:42px;width:42px;border-radius:8px;border:2px solid var(--primary);padding:2px;object-fit:contain;}
+.heading-title{font-size:18px;font-weight:800;color:var(--text-dark);white-space:nowrap;text-align:left;}
+.location-tag{font-size:13px;font-weight:600;color:var(--text-gray);background:var(--bg-light);padding:8px 14px;border-radius:8px;white-space:nowrap;}
 .menu-btn{font-size:28px;cursor:pointer;display:none;}
 .nav-links{display:flex;gap:24px;list-style:none;}
 .nav-links a{text-decoration:none;color:var(--text-dark);font-weight:500;font-size:16px;}
@@ -88,13 +92,13 @@ nav{max-width:1200px;margin:auto;padding:0 20px;height:70px;display:flex;align-i
 
 <header>
 <nav>
-<a href="/" class="logo">Chetan Catering</a>
-<div class="menu-btn" onclick="toggleMenu()">☰</div>
-<ul class="nav-links">
-<li><a href="/">Home</a></li>
-<li><a href="/services">Services</a></li>
-<li><a href="/menu">Menu</a></li>
-</ul>
+<div class="logo-section">
+<div class="logo">
+<img src="static/WhatsApp Image 2026-01-21 at 10.54.12 (1).jpeg" alt="Omsgr Catering Services">
+</div>
+<div class="heading-title">Omsgr Caterings</div>
+</div>
+<div class="location-tag">📍 Siddakatte,KA</div>
 </nav>
 </header>
 
