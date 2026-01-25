@@ -178,7 +178,6 @@ async function markOrderCompleted(orderId){
         if(response.success){
             alert('✅ Order marked as completed successfully');
             loadOrders();
-            loadStats();
         }
     }catch(e){
         alert('❌ Error updating order status: ' + e.message);

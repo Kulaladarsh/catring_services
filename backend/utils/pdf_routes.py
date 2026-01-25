@@ -10,6 +10,12 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from datetime import datetime
 import os
 
+print("=" * 50)
+print("EMAIL CONFIGURATION CHECK:")
+print(f"MAIL_USERNAME: {os.getenv('MAIL_USERNAME')}")
+print(f"MAIL_PASSWORD exists: {bool(os.getenv('MAIL_PASSWORD'))}")
+print("=" * 50)
+
 pdf_bp = Blueprint("pdf", __name__, url_prefix="/admin/api/pdf")
 
 
@@ -207,38 +213,18 @@ def generate_grocery_pdf(booking_details, ingredients_list):
 def generate_grocery_list_pdf():
     """
     Admin API: Generate a grocery list PDF
-
-    Request body (JSON):
-    {
-        "booking_details": {
-            "customer_name": "John Doe",
-            "mobile": "+919876543210",
-            "email": "john@example.com",
-            "event_date": "2026-02-15",
-            "time_slot": "Morning",
-            "guests": 50,
-            "event_location": "123 Main St"
-        },
-        "ingredients": [
-            "Rice - 5 kg",
-            "Dal - 2 kg",
-            "Vegetables - 3 kg"
-        ],
-        "booking_id": "optional_booking_id"  // If provided, will use final ingredients if approved
-    }
     """
     try:
         data = request.get_json()
 
         booking_details = data.get('booking_details', {})
         ingredients = data.get('ingredients', [])
-        booking_id = data.get('booking_id')
 
         if not booking_details or not ingredients:
             return jsonify({"error": "booking_details and ingredients are required"}), 400
 
-        # Generate PDF (will use final ingredients if booking_id provided and approved)
-        pdf_buffer = generate_grocery_pdf(booking_details, ingredients, booking_id)
+        # Generate PDF - FIXED: removed booking_id parameter
+        pdf_buffer = generate_grocery_pdf(booking_details, ingredients)
 
         # Generate filename
         customer_name = booking_details.get('customer_name', 'Customer').replace(' ', '_')
@@ -265,50 +251,74 @@ def generate_grocery_list_pdf():
 def generate_and_email_pdf():
     """
     Admin API: Generate PDF and send via email
-    
-    Request body (JSON):
-    {
-        "booking_details": { ... },
-        "ingredients": [ ... ],
-        "recipient_email": "customer@example.com"
-    }
     """
     try:
         data = request.get_json()
-        
+
+        print("📥 Received request data:", data)  # DEBUG
+
         booking_details = data.get('booking_details', {})
         ingredients = data.get('ingredients', [])
         recipient_email = data.get('recipient_email')
-        
+
+        print(f"📧 Recipient email: {recipient_email}")  # DEBUG
+        print(f"📋 Ingredients count: {len(ingredients)}")  # DEBUG
+
         if not all([booking_details, ingredients, recipient_email]):
-            return jsonify({"error": "booking_details, ingredients, and recipient_email are required"}), 400
-        
+            missing = []
+            if not booking_details: missing.append('booking_details')
+            if not ingredients: missing.append('ingredients')
+            if not recipient_email: missing.append('recipient_email')
+            error_msg = f"Missing required fields: {', '.join(missing)}"
+            print(f"❌ Validation error: {error_msg}")  # DEBUG
+            return jsonify({"error": error_msg}), 400
+
         # Generate PDF
+        print("📄 Generating PDF...")  # DEBUG
         pdf_buffer = generate_grocery_pdf(booking_details, ingredients)
         pdf_data = pdf_buffer.getvalue()
-        
-        # Send email
+        print(f"✅ PDF generated, size: {len(pdf_data)} bytes")  # DEBUG
+
+        # Import email function
+        print("📨 Importing email function...")  # DEBUG
         from backend.utils.email import send_email_with_pdf
-        
+
+        # Send email
+        print(f"📤 Sending email to {recipient_email}...")  # DEBUG
         result = send_email_with_pdf(
             recipient_email=recipient_email,
             pdf_data=pdf_data,
             subject=f"Grocery List - {booking_details.get('customer_name', 'Customer')}",
-            body_text=None  # Will use default
+            body_text=None
         )
-        
-        if result['success']:
+
+        print(f"📬 Email result: {result}")  # DEBUG
+
+        if result.get('success'):
             return jsonify({
                 "success": True,
                 "message": f"PDF generated and sent to {recipient_email}"
             })
         else:
-            return jsonify({
-                "success": False,
-                "error": result.get('error', 'Failed to send email')
-            }), 500
-        
+            error_message = result.get('error', 'Unknown error occurred')
+            print(f"❌ Email failed: {error_message}")  # DEBUG
+
+            # Check for Gmail authentication errors
+            if '5.7.8' in error_message or 'Username and Password not accepted' in error_message:
+                return jsonify({
+                    "success": False,
+                    "error": "Gmail authentication failed. Please check your Gmail App Password in .env file."
+                }), 401
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": error_message
+                }), 500
+
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"💥 Exception occurred:\n{error_trace}")  # DEBUG
         return jsonify({"error": f"Operation failed: {str(e)}"}), 500
 
 
@@ -342,3 +352,60 @@ def preview_pdf():
         
     except Exception as e:
         return jsonify({"error": f"PDF preview failed: {str(e)}"}), 500
+
+
+# =========================
+# API ENDPOINT: TEST EMAIL
+# =========================
+
+@pdf_bp.route("/test-email", methods=["POST"])
+@admin_required
+def test_email():
+    """
+    Test email configuration
+    """
+    try:
+        data = request.get_json()
+        test_email = data.get('email', os.getenv('MAIL_USERNAME'))
+
+        import smtplib
+        from email.mime.text import MIMEText
+
+        sender_email = os.getenv("MAIL_USERNAME")
+        sender_password = os.getenv("MAIL_PASSWORD")
+
+        print(f"Testing email with:")
+        print(f"  Sender: {sender_email}")
+        print(f"  Password exists: {bool(sender_password)}")
+        print(f"  Recipient: {test_email}")
+
+        if not sender_email or not sender_password:
+            return jsonify({
+                "success": False,
+                "error": "Email credentials not configured in .env file"
+            }), 500
+
+        msg = MIMEText("This is a test email from Catering Services.")
+        msg['Subject'] = 'Test Email'
+        msg['From'] = sender_email
+        msg['To'] = test_email
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.set_debuglevel(1)  # Show SMTP debug info
+        server.starttls()
+        server.login(sender_email, sender_password)
+        server.send_message(msg)
+        server.quit()
+
+        return jsonify({
+            "success": True,
+            "message": f"Test email sent successfully to {test_email}"
+        })
+
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500

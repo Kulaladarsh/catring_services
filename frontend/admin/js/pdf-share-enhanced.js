@@ -3,7 +3,7 @@
  * ENHANCED PDF SHARING FUNCTIONALITY
  * File: js/pdf-share-enhanced.js
  * ============================================
- * 
+ *
  * Features:
  * 1. Auto-send PDF to Gmail
  * 2. Success alert
@@ -11,6 +11,13 @@
  * 4. Silent orders table refresh
  * 5. Comprehensive error handling
  */
+
+// ✅ PRODUCTION CONFIG: Set your live domain here
+const PUBLIC_BASE_URL =
+    window.location.hostname === "127.0.0.1" ||
+    window.location.hostname === "localhost"
+        ? "https://your-live-domain.com"   // 🔁 CHANGE THIS TO YOUR REAL DOMAIN
+        : window.location.origin;
 
 /**
  * Main PDF Sharing Function
@@ -34,52 +41,125 @@ async function sharePDFEnhanced(buttonElement = null) {
     }
 
     try {
+        console.log('🚀 Starting PDF share process...', { currentBookingId });
+
         // ===========================================
-        // STEP 1: Send PDF to predefined Gmail address
+        // STEP 1: Get booking details
         // ===========================================
-        console.log('📧 Step 1: Sending PDF to admin Gmail...');
-        
-        const emailResponse = await fetch(
-            `/admin/api/ingredients/booking/${currentBookingId}/send-pdf-email`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'same-origin' // Include session cookies
+        console.log('📦 Step 1: Fetching booking details...');
+        const response = await fetch(`/admin/api/bookings/${currentBookingId}`);
+        console.log('📦 Booking response status:', response.status);
+
+        if (!response.ok) {
+            throw new Error('Failed to fetch booking details');
+        }
+
+        const bookingResponse = await response.json();
+        console.log('✅ Booking response data:', bookingResponse);
+
+        // Extract booking from response (API returns {success: true, booking: {...}})
+        const booking = bookingResponse.booking || bookingResponse;
+        console.log('✅ Booking data:', booking);
+
+        // ===========================================
+        // STEP 2: Get ingredients
+        // ===========================================
+        console.log('🥬 Step 2: Fetching ingredients...');
+        const ingredientsResponse = await fetch(`/admin/api/ingredients/booking/${currentBookingId}`);
+        console.log('🥬 Ingredients response status:', ingredientsResponse.status);
+
+        if (!ingredientsResponse.ok) {
+            throw new Error('Failed to fetch ingredients');
+        }
+
+        const ingredientsData = await ingredientsResponse.json();
+        console.log('✅ Ingredients data:', ingredientsData);
+
+        const ingredients = ingredientsData.ingredients || [];
+
+        // ===========================================
+        // STEP 3: Prepare request payload
+        // ===========================================
+        console.log('📨 Step 3: Preparing email payload...');
+
+        // Validate required data before sending
+        if (!booking.customer_name || !booking.email) {
+            throw new Error('Missing required booking details: customer_name or email');
+        }
+
+        if (!ingredients || ingredients.length === 0) {
+            throw new Error('No ingredients found for this booking');
+        }
+
+        const payload = {
+            booking_details: {
+                customer_name: booking.customer_name,
+                mobile: booking.mobile,
+                email: booking.email,
+                event_date: booking.event_date,
+                time_slot: booking.time_slot,
+                guests: booking.guests,
+                event_location: booking.event_location
+            },
+            ingredients: ingredients,
+            recipient_email: booking.email
+        };
+
+        console.log('📨 Sending email with payload:', payload);
+        console.log('📋 Payload validation:');
+        console.log('  - booking_details present:', !!payload.booking_details);
+        console.log('  - ingredients present:', !!payload.ingredients && payload.ingredients.length > 0);
+        console.log('  - recipient_email present:', !!payload.recipient_email);
+
+        // ===========================================
+        // STEP 4: Send email
+        // ===========================================
+        console.log('📤 Step 4: Sending email...');
+        const emailResponse = await fetch('/admin/api/pdf/generate-and-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        console.log('📬 Email response status:', emailResponse.status);
+
+        const result = await emailResponse.json();
+        console.log('📬 Email result:', result);
+
+        if (!emailResponse.ok || !result.success) {
+            // Check for Gmail SMTP authentication errors
+            const errorMsg = result.error || 'Failed to send email';
+            if (errorMsg.includes('5.7.8') || errorMsg.includes('Username and Password not accepted')) {
+                throw new Error('Gmail authentication failed. Please check your Gmail App Password in .env file.');
             }
-        );
-
-        const emailResult = await emailResponse.json();
-
-        // Check for email sending errors
-        if (!emailResponse.ok || !emailResult.success) {
-            throw new Error(emailResult.error || 'Failed to send email');
+            throw new Error(errorMsg);
         }
 
         // ===========================================
-        // STEP 2: Show success alert for Gmail
+        // STEP 5: Show success alert for Gmail
         // ===========================================
-        console.log('✅ Step 2: Email sent successfully');
+        console.log('✅ Step 5: Email sent successfully');
         showCustomAlert('success', 'Sent successfully via Gmail');
 
         // ===========================================
-        // STEP 3: Refresh orders table silently (no alert)
+        // STEP 6: Refresh orders table silently (no alert)
         // ===========================================
-        console.log('🔄 Step 3: Refreshing orders table...');
+        console.log('🔄 Step 6: Refreshing orders table...');
         await refreshOrdersTableSilently();
 
         // ===========================================
-        // STEP 4: Show WhatsApp confirmation dialog
+        // STEP 7: Show WhatsApp confirmation dialog
         // ===========================================
-        console.log('💬 Step 4: Showing WhatsApp confirmation...');
+        console.log('💬 Step 7: Showing WhatsApp confirmation...');
         const wantsWhatsApp = await showWhatsAppConfirmationDialog();
 
         if (wantsWhatsApp) {
             // ===========================================
-            // STEP 5: Open WhatsApp for manual sharing
+            // STEP 8: Open WhatsApp for manual sharing
             // ===========================================
-            console.log('📱 Step 5: Opening WhatsApp...');
+            console.log('📱 Step 8: Opening WhatsApp...');
             await openWhatsAppWithPDFLink(currentBookingId);
         } else {
             console.log('ℹ️ User declined WhatsApp sharing');
@@ -90,10 +170,10 @@ async function sharePDFEnhanced(buttonElement = null) {
         // ERROR HANDLING
         // ===========================================
         console.error('❌ PDF sharing error:', error);
-        
+
         // Show user-friendly error message
         showCustomAlert('error', 'Failed to send email. Please try again.');
-        
+
     } finally {
         // ===========================================
         // RESTORE BUTTON STATE
@@ -304,18 +384,20 @@ async function openWhatsAppWithPDFLink(bookingId) {
         const booking = data.booking;
         const phoneNumber = booking.mobile || '';
         
-        // Create PDF URL
-        const pdfUrl = `${window.location.origin}/admin/api/ingredients/booking/${bookingId}/pdf`;
-        
-        // Format WhatsApp message
+        // Create PDF URL - Use public domain for production
+        const pdfUrl = `${PUBLIC_BASE_URL}/admin/api/ingredients/booking/${bookingId}/pdf`;
+
+        // Format WhatsApp message (Email-first + Public link)
         const message = encodeURIComponent(
             `Hello ${booking.customer_name},\n\n` +
-            `Your order ingredients list is ready!\n\n` +
+            `Your order ingredients list is ready ✅\n\n` +
             `📋 Booking ID: ${bookingId.substring(0, 8)}...\n` +
             `📅 Event Date: ${booking.event_date}\n` +
             `⏰ Time Slot: ${booking.time_slot}\n` +
             `👥 Guests: ${booking.guests}\n\n` +
-            `📄 Download your PDF here:\n${pdfUrl}\n\n` +
+            `📧 The complete ingredients PDF has been sent to your email.\n` +
+            `(Please check Inbox / Spam)\n\n` +
+            `🔗 Download PDF (any device):\n${pdfUrl}\n\n` +
             `Thank you for choosing Chetan Catering Services!\n` +
             `For any queries, please contact us.`
         );

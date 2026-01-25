@@ -1,3 +1,6 @@
+# File: backend/admin/api_routes.py
+# ✅ FIXED: Rating endpoint now works with real booking IDs and removes status validation
+
 from flask import Blueprint, request, jsonify, session
 from backend.models import (
     get_all_bookings,
@@ -6,7 +9,10 @@ from backend.models import (
     mark_ingredients_sent,
     log_admin_action,
     get_average_rating,
-    update_booking_rating
+    update_booking_rating,
+    get_ratings_average,
+    submit_automatic_rating,
+    submit_user_rating
 )
 from backend.utils.email import send_ingredients_list
 from backend.utils.whatsapp import send_ingredients_whatsapp
@@ -24,7 +30,7 @@ def admin_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("admin_logged_in"):
-            return jsonify({"error": "Unauthorized access"}), 401
+            return jsonify({"success": False, "message": "Unauthorized access"}), 401
         return f(*args, **kwargs)
     return wrapper
 
@@ -360,29 +366,16 @@ def delete_booking(booking_id):
 
 
 # =========================
-# RATING ENDPOINTS
+# ✅ FIXED RATING ENDPOINTS
 # =========================
 
 @admin_api_bp.route('/average-rating', methods=['GET'])
 def get_average_rating_endpoint():
     """
-    Public API: Returns the average rating from all rated bookings
+    Public API: Returns the average rating from the automatic ratings system
     """
     try:
-        from backend.db import orders_collection
-        from datetime import datetime
-
-        pipeline = [
-            {"$match": {"rating": {"$ne": None}}},
-            {"$group": {"_id": None, "average": {"$avg": "$rating"}, "count": {"$sum": 1}}}
-        ]
-        result = list(orders_collection.aggregate(pipeline))
-        if result:
-            average = round(result[0]["average"], 1)
-            count = result[0]["count"]
-        else:
-            average = None
-            count = 0
+        average, count = get_ratings_average()
 
         return jsonify({
             "success": True,
@@ -396,46 +389,47 @@ def get_average_rating_endpoint():
 @admin_api_bp.route('/rate-booking/<booking_id>', methods=['POST'])
 def rate_booking(booking_id):
     """
-    Public API: Allows customers to rate their booking after completion
+    ✅ FIXED: Public API for rating bookings
+    - Accepts real MongoDB ObjectId booking IDs
+    - No longer requires "Completed" status
+    - Allows rating immediately after booking
     """
     try:
         from backend.db import orders_collection
         from bson import ObjectId
+        from datetime import datetime
 
         data = request.get_json()
         rating = data.get("rating")
 
+        # Validate rating
         if not rating:
-            return jsonify({"error": "Rating is required"}), 400
+            return jsonify({"success": False, "message": "Rating is required"}), 400
 
         try:
             rating = int(rating)
         except ValueError:
-            return jsonify({"error": "Rating must be a number"}), 400
+            return jsonify({"success": False, "message": "Rating must be a number"}), 400
 
         if not (1 <= rating <= 5):
-            return jsonify({"error": "Rating must be between 1 and 5"}), 400
+            return jsonify({"success": False, "message": "Rating must be between 1 and 5"}), 400
 
-        # Validate booking_id
+        # Validate booking ID format
         try:
             booking_object_id = ObjectId(booking_id)
         except Exception:
-            return jsonify({"error": "Invalid booking ID format"}), 400
+            return jsonify({"success": False, "message": "Invalid booking ID format"}), 400
 
         # Check if booking exists
         booking = orders_collection.find_one({"_id": booking_object_id})
         if not booking:
-            return jsonify({"error": "Booking not found"}), 404
-
-        # Only allow rating for completed bookings
-        if booking.get("status") != "Completed":
-            return jsonify({"error": "Only completed bookings can be rated"}), 400
+            return jsonify({"success": False, "message": "Booking not found"}), 404
 
         # Check if already rated
         if booking.get("rating") is not None:
-            return jsonify({"error": "Booking already rated"}), 400
+            return jsonify({"success": False, "message": "Booking already rated"}), 400
 
-        # Update rating
+        # Save rating
         result = orders_collection.update_one(
             {"_id": booking_object_id},
             {"$set": {"rating": rating, "updated_at": datetime.utcnow()}}
@@ -444,11 +438,97 @@ def rate_booking(booking_id):
         if result.modified_count > 0:
             return jsonify({
                 "success": True,
-                "message": "Thank you for your rating!",
-                "rating": rating
-            })
+                "message": "Rating submitted successfully"
+            }), 200
         else:
-            return jsonify({"error": "Failed to save rating"}), 500
+            return jsonify({"success": False, "message": "Failed to save rating"}), 500
 
     except Exception as e:
-        return jsonify({"error": f"Failed to submit rating: {str(e)}"}), 500
+        return jsonify({"success": False, "message": f"Failed to submit rating: {str(e)}"}), 500
+
+
+# =========================
+# SUBMIT USER RATING ENDPOINT
+# =========================
+
+@admin_api_bp.route('/submit-user-rating', methods=['POST'])
+def submit_user_rating_endpoint():
+    """
+    Public API: Submits a user rating linked to a completed booking
+    - No authentication required
+    - Rating must be linked to a completed booking ID
+    - One rating per completed booking
+    - Prevents duplicate ratings for same booking
+    """
+    try:
+        from datetime import datetime
+        data = request.get_json()
+        rating = data.get("rating")
+        booking_id = data.get("booking_id")
+        user_agent = data.get("user_agent")
+
+        # Validate rating
+        if not rating:
+            return jsonify({"success": False, "message": "Rating is required"}), 400
+
+        try:
+            rating = int(rating)
+        except ValueError:
+            return jsonify({"success": False, "message": "Rating must be a number"}), 400
+
+        if not (1 <= rating <= 5):
+            return jsonify({"success": False, "message": "Rating must be between 1 and 5"}), 400
+
+        # Validate booking_id is required
+        if not booking_id:
+            return jsonify({"success": False, "message": "Booking ID is required"}), 400
+
+        # Validate booking_id format
+        try:
+            from bson import ObjectId
+            booking_object_id = ObjectId(booking_id)
+        except Exception:
+            return jsonify({"success": False, "message": "Invalid booking ID format"}), 400
+
+        # Check if booking exists
+        from backend.db import orders_collection
+        booking = orders_collection.find_one({"_id": booking_object_id})
+        if not booking:
+            return jsonify({"success": False, "message": "Booking not found"}), 404
+
+        # Check if booking is completed
+        if booking.get("status") != "Completed":
+            return jsonify({"success": False, "message": "You can only rate completed bookings"}), 400
+
+        # Check if booking has already been rated
+        if booking.get("rating") is not None:
+            return jsonify({"success": False, "message": "You have already rated this booking"}), 400
+
+        # Get client IP address for additional validation
+        ip_address = request.remote_addr or request.environ.get('HTTP_X_FORWARDED_FOR', request.environ.get('REMOTE_ADDR', '127.0.0.1'))
+
+        # Optional mobile number (not required)
+        mobile = data.get("mobile", "").strip()
+
+        # Submit rating using the model function (will store in user_ratings_collection)
+        success = submit_user_rating(mobile, ip_address, rating, user_agent)
+
+        if success:
+            # Update the booking with the rating
+            result = orders_collection.update_one(
+                {"_id": booking_object_id},
+                {"$set": {"rating": rating, "rating_submitted_at": datetime.utcnow()}}
+            )
+
+            if result.modified_count > 0:
+                return jsonify({
+                    "success": True,
+                    "message": "Rating submitted successfully"
+                }), 200
+            else:
+                return jsonify({"success": False, "message": "Failed to save rating to booking"}), 500
+        else:
+            return jsonify({"success": False, "message": "Failed to submit rating"}), 500
+
+    except Exception as e:
+        return jsonify({"success": False, "message": f"Failed to submit rating: {str(e)}"}), 500

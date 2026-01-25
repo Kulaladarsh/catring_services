@@ -81,15 +81,6 @@ body{
   border-radius:8px;
   white-space:nowrap;
 }
-.brand{
-  font-weight:700;
-  font-size:18px;
-  color:var(--brand);
-}
-.brand span{
-  color:#475569;
-  font-weight:600;
-}
 
 .container{
   max-width:860px;
@@ -243,20 +234,32 @@ body{
   color:#EF4444;
 }
 
-.debug-box{
-  margin-top:20px;
-  padding:15px;
-  background:#f0f0f0;
-  border-radius:8px;
-  font-size:12px;
-  font-family:monospace;
-  max-height:200px;
-  overflow-y:auto;
-  display:none;
+/* Rating Star Buttons */
+.star-btn {
+  background: none;
+  border: none;
+  font-size: 32px;
+  cursor: pointer;
+  color: #D1D5DB;
+  transition: all 0.2s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  transform: scale(1.2);
+  color: #FBBF24;
+}
+
+.star-btn.selected {
+  color: #FBBF24;
 }
 
 @media(max-width:640px){
   .actions{grid-template-columns:1fr}
+  .star-btn {
+    font-size: 28px;
+  }
 }
 </style>
 </head>
@@ -332,9 +335,6 @@ body{
 
 </div>
 
-<!-- DEBUG BOX (Remove in production) -->
-<div class="debug-box" id="debugBox"></div>
-
 </div>
 
 <div class="footer">
@@ -350,22 +350,7 @@ body{
       Ingredients list will be shared within <b>24 hours</b>.
     </p>
 
-    <!-- Rating Section -->
-    <div id="ratingSection" style="margin-top:20px;padding:20px;background:#f8f9fa;border-radius:12px;display:none;">
-      <h3 style="margin-bottom:12px;color:#EA580C;">Rate Your Experience</h3>
-      <p style="font-size:14px;color:#64748B;margin-bottom:15px;">Help us improve by rating your booking experience</p>
 
-      <div style="display:flex;gap:8px;margin-bottom:15px;justify-content:center;">
-        <button class="star-btn" data-rating="1">☆</button>
-        <button class="star-btn" data-rating="2">☆</button>
-        <button class="star-btn" data-rating="3">☆</button>
-        <button class="star-btn" data-rating="4">☆</button>
-        <button class="star-btn" data-rating="5">☆</button>
-      </div>
-
-      <button id="submitRatingBtn" class="btn btn-primary" style="width:100%;display:none;" onclick="submitRating()">Submit Rating</button>
-      <div id="ratingMessage" style="margin-top:10px;font-size:14px;text-align:center;"></div>
-    </div>
 
     <div style="display:grid;gap:12px;margin-top:18px">
       <button class="btn btn-secondary" onclick="downloadReceipt()">Download Receipt</button>
@@ -432,13 +417,13 @@ body{
 
 <script>
 // ============================================
-// IMPROVED ORDER SUMMARY WITH OPTIMISTIC UI
+// IMPROVED ORDER SUMMARY WITH REAL BOOKING ID
 // ============================================
 
 let payment = "Advance";
-let isSubmitting = false; // Prevent double submission
+let isSubmitting = false;
+let realBookingId = null; // Will store the real booking ID from API
 
-// Get element references
 const dateEl = document.getElementById("date");
 const timeEl = document.getElementById("time");
 const guestsEl = document.getElementById("guests");
@@ -470,9 +455,7 @@ function validateEmail(email) {
 }
 
 function validateMobile(mobile) {
-  // Remove spaces and special characters
   const cleaned = mobile.replace(/[\s\-\(\)]/g, '');
-  // Check if it's a valid Indian mobile (10 digits or +91 followed by 10 digits)
   return /^(\+91)?[6-9]\d{9}$/.test(cleaned);
 }
 
@@ -502,14 +485,13 @@ function paySelect(p, el) {
 }
 
 // ============================================
-// LOAD ORDER DATA (OPTIMIZED)
+// LOAD ORDER DATA
 // ============================================
 
 function load() {
   console.log("=== LOADING ORDER SUMMARY ===");
   
   try {
-    // Get data from sessionStorage
     const bookingDataStr = sessionStorage.getItem("bookingData");
     const cartStr = sessionStorage.getItem("cart");
     
@@ -521,7 +503,6 @@ function load() {
     const b = JSON.parse(bookingDataStr);
     const c = JSON.parse(cartStr);
 
-    // Validate data exists
     if (Object.keys(b).length === 0) {
       showError("Invalid booking data. Please go back and fill the form.");
       return;
@@ -532,7 +513,6 @@ function load() {
       return;
     }
 
-    // Sanitize and display data
     displayEventDetails(b);
     displayCustomerDetails(b);
     const subtotal = displayDishes(c);
@@ -566,7 +546,6 @@ function displayEventDetails(b) {
 function displayCustomerDetails(b) {
   nameEl.textContent = sanitizeHTML(b.customerName || "N/A");
   
-  // Format mobile number safely
   let mobileDisplay = b.mobile || "N/A";
   if (mobileDisplay !== "N/A") {
     mobileDisplay = mobileDisplay.trim();
@@ -580,7 +559,6 @@ function displayCustomerDetails(b) {
   
   emailEl.textContent = sanitizeHTML(b.email || "N/A");
   
-  // Build address display
   let addressDisplay = buildAddress(b);
   addressEl.textContent = sanitizeHTML(addressDisplay);
 }
@@ -651,19 +629,15 @@ function showError(message) {
 }
 
 // ============================================
-// OPTIMISTIC UI SUBMISSION
+// BOOKING SUBMISSION (CAPTURES REAL BOOKING ID)
 // ============================================
 
 async function submitBooking() {
-  // Prevent double submission
-  if (isSubmitting) {
-    return;
-  }
+  if (isSubmitting) return;
 
   const confirmBtn = document.getElementById("confirmBtn");
   
   try {
-    // Get data
     const bookingDataStr = sessionStorage.getItem("bookingData");
     const cartStr = sessionStorage.getItem("cart");
 
@@ -675,12 +649,10 @@ async function submitBooking() {
     const b = JSON.parse(bookingDataStr);
     const c = JSON.parse(cartStr);
 
-    // Validate data
     if (!validateBookingData(b)) {
       return;
     }
 
-    // Build dishes array
     const selectedDishes = buildDishesArray(c);
     
     if (selectedDishes.length === 0) {
@@ -688,25 +660,17 @@ async function submitBooking() {
       return;
     }
 
-    // Set submitting state
     isSubmitting = true;
     confirmBtn.disabled = true;
     confirmBtn.innerHTML = '<span style="opacity:0.7">⏳ Submitting...</span>';
 
-    // Prepare sanitized booking data
     const sanitizedData = sanitizeBookingData(b);
     const bookingData = {
       ...sanitizedData,
       selected_dishes: selectedDishes
     };
 
-    // OPTIMISTIC UI: Show success immediately
-    setTimeout(() => {
-      preparePDFReceipt();
-      document.getElementById("done").classList.add("active");
-    }, 300); // Small delay for better UX
-
-    // Send request in background
+    // Send request and wait for real booking ID
     const response = await fetch('/api/bookings/', {
       method: 'POST',
       headers: {
@@ -718,25 +682,25 @@ async function submitBooking() {
     const result = await response.json();
 
     if (!response.ok || !result.success) {
-      // If failed, hide success modal and show error
-      document.getElementById("done").classList.remove("active");
       alert('Booking failed: ' + (result.error || result.message || 'Unknown error'));
-      
-      // Reset button
       isSubmitting = false;
       confirmBtn.disabled = false;
       confirmBtn.textContent = "Confirm Booking";
+      return;
     }
-    // If successful, modal is already shown (optimistic UI)
+
+    // ✅ CAPTURE THE REAL BOOKING ID
+    realBookingId = result.booking_id;
+    console.log("✅ Booking successful! ID:", realBookingId);
+
+    // Show success modal
+    preparePDFReceipt();
+    document.getElementById("done").classList.add("active");
 
   } catch (error) {
     console.error('Error submitting booking:', error);
-    
-    // Hide success modal if shown
-    document.getElementById("done").classList.remove("active");
     alert('Network error. Please check your connection and try again.');
     
-    // Reset button
     isSubmitting = false;
     confirmBtn.disabled = false;
     confirmBtn.textContent = "Confirm Booking";
@@ -793,7 +757,7 @@ function buildDishesArray(cart) {
 }
 
 // ============================================
-// PDF RECEIPT PREPARATION
+// PDF RECEIPT
 // ============================================
 
 function preparePDFReceipt() {
@@ -850,7 +814,6 @@ window.addEventListener('DOMContentLoaded', function() {
   load();
 });
 
-// Prevent accidental page refresh
 window.addEventListener('beforeunload', function(e) {
   if (isSubmitting) {
     e.preventDefault();
@@ -858,115 +821,7 @@ window.addEventListener('beforeunload', function(e) {
   }
 });
 
-// ============================================
-// RATING SYSTEM
-// ============================================
 
-let selectedRating = 0;
-let bookingId = null; // Will be set when booking is successful
-
-// Initialize rating system when success modal is shown
-function initRatingSystem() {
-  // Get booking ID from session or generate one (simplified for demo)
-  // In a real app, this would come from the booking response
-  const bookingDataStr = sessionStorage.getItem("bookingData");
-  if (bookingDataStr) {
-    const bookingData = JSON.parse(bookingDataStr);
-    // For demo purposes, we'll use a placeholder. In real implementation,
-    // the booking ID would be returned from the successful booking API call
-    bookingId = "demo_booking_id_" + Date.now();
-  }
-
-  // Show rating section after a short delay
-  setTimeout(() => {
-    document.getElementById("ratingSection").style.display = "block";
-  }, 2000); // Show after 2 seconds
-
-  // Add event listeners to star buttons
-  document.querySelectorAll('.star-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      selectedRating = parseInt(this.dataset.rating);
-      updateStarDisplay(selectedRating);
-      document.getElementById("submitRatingBtn").style.display = "block";
-      document.getElementById("ratingMessage").textContent = "";
-    });
-  });
-}
-
-function updateStarDisplay(rating) {
-  document.querySelectorAll('.star-btn').forEach((btn, index) => {
-    if (index < rating) {
-      btn.classList.add('selected');
-      btn.textContent = '★'; // Filled star
-    } else {
-      btn.classList.remove('selected');
-      btn.textContent = '☆'; // Empty star
-    }
-  });
-}
-
-async function submitRating() {
-  if (!selectedRating || !bookingId) {
-    document.getElementById("ratingMessage").textContent = "Please select a rating first.";
-    document.getElementById("ratingMessage").style.color = "#EF4444";
-    return;
-  }
-
-  const submitBtn = document.getElementById("submitRatingBtn");
-  submitBtn.disabled = true;
-  submitBtn.textContent = "Submitting...";
-
-  try {
-    const response = await fetch(`/admin/api/rate-booking/${bookingId}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ rating: selectedRating })
-    });
-
-    const result = await response.json();
-
-    if (response.ok && result.success) {
-      document.getElementById("ratingMessage").textContent = "Thank you for your feedback!";
-      document.getElementById("ratingMessage").style.color = "#10B981";
-      submitBtn.style.display = "none";
-
-      // Hide rating section after successful submission
-      setTimeout(() => {
-        document.getElementById("ratingSection").style.display = "none";
-      }, 2000);
-    } else {
-      document.getElementById("ratingMessage").textContent = result.error || "Failed to submit rating.";
-      document.getElementById("ratingMessage").style.color = "#EF4444";
-      submitBtn.disabled = false;
-      submitBtn.textContent = "Submit Rating";
-    }
-  } catch (error) {
-    console.error('Error submitting rating:', error);
-    document.getElementById("ratingMessage").textContent = "Network error. Please try again.";
-    document.getElementById("ratingMessage").style.color = "#EF4444";
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Submit Rating";
-  }
-}
-
-// Initialize rating when success modal becomes visible
-const observer = new MutationObserver(function(mutations) {
-  mutations.forEach(function(mutation) {
-    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-      const modal = document.getElementById('done');
-      if (modal.classList.contains('active')) {
-        initRatingSystem();
-      }
-    }
-  });
-});
-
-observer.observe(document.getElementById('done'), {
-  attributes: true,
-  attributeFilter: ['class']
-});
 </script>
 
 </body>

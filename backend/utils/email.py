@@ -13,8 +13,8 @@ def send_pdf_via_email(customer_email, customer_name, pdf_buffer, booking_id):
     Send PDF via Gmail SMTP
     """
     try:
-        sender_email = os.getenv("EMAIL_USER")  # Your personal Gmail from .env
-        sender_password = os.getenv("EMAIL_PASSWORD")  # App password from .env
+        sender_email = os.getenv("MAIL_USERNAME")  # Your personal Gmail from .env
+        sender_password = os.getenv("MAIL_PASSWORD")  # App password from .env
         
 
         # Create message
@@ -74,8 +74,8 @@ def send_booking_confirmation(customer_email, customer_name, booking_details):
     Send booking confirmation email to customer
     """
     try:
-        sender_email = os.getenv("EMAIL_USER")  # Your personal Gmail from .env
-        sender_password = os.getenv("EMAIL_PASSWORD")  # App password from .env
+        sender_email = os.getenv("MAIL_USERNAME")  # Your personal Gmail from .env
+        sender_password = os.getenv("MAIL_PASSWORD")  # App password from .env
 
         # Create message
         msg = MIMEMultipart()
@@ -129,8 +129,8 @@ def send_ingredients_list(customer_email, customer_name, booking_details, ingred
     Send ingredients list email to customer
     """
     try:
-        sender_email = os.getenv("EMAIL_USER")  # Your personal Gmail from .env
-        sender_password = os.getenv("EMAIL_PASSWORD")  # App password from .env
+        sender_email = os.getenv("MAIL_USERNAME")  # Your personal Gmail from .env
+        sender_password = os.getenv("MAIL_PASSWORD")  # App password from .env
 
         # Create message
         msg = MIMEMultipart()
@@ -188,8 +188,8 @@ def send_admin_notification(booking_details):
     Send notification to admin about new booking
     """
     try:
-        sender_email = os.getenv("EMAIL_USER")  # Your personal Gmail from .env
-        sender_password = os.getenv("EMAIL_PASSWORD")  # App password from .env
+        sender_email = os.getenv("MAIL_USERNAME")  # Your personal Gmail from .env
+        sender_password = os.getenv("MAIL_PASSWORD")  # App password from .env
         admin_email = os.getenv("ADMIN_EMAIL")  # Admin email from .env
 
         # Create message
@@ -238,3 +238,67 @@ This is an automated notification.
     except Exception as e:
         print(f"Admin notification email failed: {str(e)}")
         return False
+
+
+def send_email_with_pdf(recipient_email, pdf_data, subject, body_text=None):
+    """
+    Send email with PDF attachment
+
+    Args:
+        recipient_email: Recipient's email address
+        pdf_data: PDF file data (bytes)
+        subject: Email subject
+        body_text: Optional email body text
+
+    Returns:
+        dict: {'success': True/False, 'error': error_message}
+    """
+    try:
+        sender_email = os.getenv("MAIL_USERNAME")
+        sender_password = os.getenv("MAIL_PASSWORD")
+
+        if not sender_email or not sender_password:
+            return {'success': False, 'error': 'Email credentials not configured'}
+
+        # Create message
+        msg = MIMEMultipart()
+        msg['From'] = sender_email
+        msg['To'] = recipient_email
+        msg['Subject'] = subject
+
+        # Default body if not provided
+        if not body_text:
+            body_text = """
+Dear Customer,
+
+Please find attached your grocery and ingredients list.
+
+Best regards,
+Omsgr Caterings Team
+
+---
+This is an automated email. Please do not reply to this address.
+            """
+
+        msg.attach(MIMEText(body_text, 'plain'))
+
+        # Attach PDF
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(pdf_data)
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', 'attachment; filename=grocery_list.pdf')
+        msg.attach(part)
+
+        # Send email
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(sender_email, sender_password)
+        text = msg.as_string()
+        server.sendmail(sender_email, recipient_email, text)
+        server.quit()
+
+        return {'success': True}
+
+    except Exception as e:
+        print(f"Email sending failed: {str(e)}")
+        return {'success': False, 'error': str(e)}

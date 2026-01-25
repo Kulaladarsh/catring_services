@@ -43,25 +43,71 @@ function renderIngredientsPlanning(){
     let html = '';
 
     for(const [cat, ingredients] of Object.entries(currentPlanningIngredients)){
-        html += `<h3 style="margin: 24px 0 12px; color: var(--primary);">${getCategoryIcon(cat)} ${cat}</h3>
-                 <div class="ingredient-list" style="margin-bottom: 24px; border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: white;">`;
+        const categoryIcon = getCategoryIcon(cat);
+        const ingredientCount = ingredients.length;
+
+        html += `
+            <div class="category-section" id="category-${cat.replace(/\s+/g, '-').toLowerCase()}">
+                <div class="category-header" onclick="toggleCategory('${cat}')">
+                    <div class="category-info">
+                        <div class="category-icon">${categoryIcon}</div>
+                        <div class="category-details">
+                            <h3>${cat}</h3>
+                            <div class="category-count">${ingredientCount} item${ingredientCount !== 1 ? 's' : ''}</div>
+                        </div>
+                    </div>
+                    <div class="category-toggle">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+                <div class="category-content">
+                    <div class="ingredients-grid">
+        `;
+
         ingredients.forEach((ing, index) => {
             const checked = ing.checked !== false ? 'checked' : '';
             html += `
-                <div class="ingredient-row">
-                    <input type="checkbox" ${checked} onchange="updatePlanningIngredientCheck('${cat}', ${index}, this.checked)" style="width: 18px; height: 18px;">
-                    <input type="text" value="${ing.name}" onchange="updatePlanningIngredientName('${cat}', ${index}, this.value)">
-                    <input type="number" value="${ing.quantity}" step="0.01" onchange="updatePlanningIngredientQuantity('${cat}', ${index}, this.value)">
-                    <input type="text" value="${ing.unit}" onchange="updatePlanningIngredientUnit('${cat}', ${index}, this.value)" style="width: 80px;">
-                    <button onclick="removePlanningIngredient('${cat}', ${index})" style="padding: 10px 14px; background: var(--danger); color: white; border: none; border-radius: 8px; cursor: pointer;">Remove</button>
+                <div class="ingredient-card">
+                    <div class="ingredient-header">
+                        <input type="checkbox" class="ingredient-checkbox" ${checked} onchange="updatePlanningIngredientCheck('${cat}', ${index}, this.checked)">
+                        <h4 class="ingredient-name">${ing.name}</h4>
+                    </div>
+                    <div class="ingredient-form">
+                        <input type="number" class="ingredient-input ingredient-quantity" value="${ing.quantity}" step="0.01" onchange="updatePlanningIngredientQuantity('${cat}', ${index}, this.value)" placeholder="Quantity">
+                        <input type="text" class="ingredient-input ingredient-unit" value="${ing.unit}" onchange="updatePlanningIngredientUnit('${cat}', ${index}, this.value)" placeholder="Unit">
+                    </div>
+                    <div class="ingredient-actions">
+                        <button class="ingredient-btn remove" onclick="removePlanningIngredient('${cat}', ${index})">
+                            <i class="fas fa-trash"></i>
+                            Remove
+                        </button>
+                    </div>
                 </div>
             `;
         });
-        html += '</div>';
+
+        html += `
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
-    html += '<button class="btn btn-primary" onclick="addNewPlanningIngredient()"><i class="fas fa-plus"></i> Add New Ingredient</button>';
+    html += `
+        <button class="add-ingredient-btn" onclick="addNewPlanningIngredient()">
+            <i class="fas fa-plus"></i>
+            <span>Add New Ingredient</span>
+        </button>
+    `;
+
     container.innerHTML = html;
+}
+
+function toggleCategory(category) {
+    const categorySection = document.getElementById(`category-${category.replace(/\s+/g, '-').toLowerCase()}`);
+    if (categorySection) {
+        categorySection.classList.toggle('collapsed');
+    }
 }
 
 function updatePlanningIngredientCheck(cat, index, checked){

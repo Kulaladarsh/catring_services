@@ -137,8 +137,8 @@ border:1px solid rgba(255,255,255,.2);
 .rating span{color:var(--gold)}
 
 .btn{
-padding:14px 30px;
-border-radius:10px;
+padding:18px 30px;
+border-radius:18px;
 font-weight:700;
 text-decoration:none;
 display:inline-block;
@@ -754,12 +754,38 @@ padding:6px 10px;
         <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1600&q=80')"></div>
         <div class="slide" style="background-image: url('https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1600&q=80')"></div>
     </div>
-    <div class="hero-content">
-        <div class="rating" id="heroRating"><span id="ratingStars">★★★★★</span> <span id="ratingText">Top Rated Catering</span></div>
-        <h1>Premium Culinary Excellence</h1>
-        <p>Authentic flavors crafted for unforgettable celebrations</p>
-        <a href="/services" class="btn btn-primary">Book Your Event</a>
-    </div>
+
+<div class="hero-content">
+
+    <!-- ⭐ DYNAMIC RATING BUTTON -->
+    <button onclick="openRatingModal()"
+        style="
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 20px;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            color: #fff;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        ">
+        <span id="ratingStars"
+              style="color:#ffc107; font-size:18px; letter-spacing:2px;">
+            ★★★★★
+        </span>
+        <span id="ratingText"
+              style="font-size:14px; margin-left:6px;">
+            Loading rating...
+        </span>
+    </button>
+
+    <h1>Premium Culinary Excellence</h1>
+    <p>Authentic flavors crafted for unforgettable celebrations</p>
+    <a href="/services" class="btn btn-primary">Book Your Event</a>
+
+</div>
+
 </section>
 
 <section class="chef reveal">
@@ -974,34 +1000,780 @@ function contactDeveloper() {
 
 /* Dynamic Rating Display */
 function loadAverageRating() {
-    fetch('/admin/api/average-rating')
-        .then(response => response.json())
+    console.log('Loading average rating...');
+    fetch('/api/bookings/ratings-average')
+        .then(res => {
+            console.log('API response status:', res.status);
+            return res.json();
+        })
         .then(data => {
-            if (data.success && data.average_rating !== null) {
-                const average = data.average_rating;
-                const count = data.total_ratings;
-
-                // Generate star display
-                const fullStars = Math.floor(average);
-                const hasHalfStar = average % 1 >= 0.5;
-                const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-
-                let stars = '★'.repeat(fullStars);
-                if (hasHalfStar) stars += '☆'; // Using filled star for half, could use half-star symbol
-                stars += '☆'.repeat(emptyStars);
-
-                // Update display
-                document.getElementById('ratingStars').textContent = stars;
-                document.getElementById('ratingText').textContent = `${average.toFixed(1)} Stars (${count} reviews)`;
+            console.log('API response data:', data);
+            if (!data.success) {
+                // Show error state
+                updateHeroRatingDisplay(null, 0, 'Unable to load ratings');
+                return;
             }
+
+            if (data.average_rating === null) {
+                // No ratings yet
+                updateHeroRatingDisplay(null, 0, 'Be the first to rate!');
+                return;
+            }
+
+            const avg = Number(data.average_rating);
+            const count = data.total_ratings || 0;
+
+            updateHeroRatingDisplay(avg, count);
         })
         .catch(error => {
-            console.log('Could not load rating, keeping default display');
+            console.log('Rating API failed:', error);
+            updateHeroRatingDisplay(null, 0, 'Unable to load ratings');
         });
 }
 
-// Load rating when page loads
-document.addEventListener('DOMContentLoaded', loadAverageRating);
+function updateHeroRatingDisplay(avg, count, message = null) {
+    const starsEl = document.getElementById('ratingStars');
+    const textEl = document.getElementById('ratingText');
+
+    if (!starsEl || !textEl) return;
+
+    if (message) {
+        // Show custom message (error or no ratings)
+        starsEl.textContent = '★★★★★';
+        textEl.textContent = message;
+        return;
+    }
+
+    if (avg === null || count === 0) {
+        // No ratings yet
+        starsEl.textContent = '★★★★★';
+        textEl.textContent = 'Be the first to rate!';
+        return;
+    }
+
+    // Show actual rating
+    const full = Math.floor(avg);
+    const half = avg % 1 >= 0.5;
+
+    let stars = '★'.repeat(full);
+    if (half) stars += '⯨';   // half-star look
+    stars += '☆'.repeat(5 - stars.length);
+
+    starsEl.textContent = stars;
+    textEl.textContent = `${avg.toFixed(1)} Rated (${count})`;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadAverageRating();
+});
+
+/* Check Rating Eligibility */
+async function checkRatingEligibility() {
+    try {
+        const response = await fetch('/api/bookings/check-rating-eligibility', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+        return result.eligible || false;
+    } catch (error) {
+        console.error('Error checking rating eligibility:', error);
+        return false;
+    }
+}
+
+/* Populate Booking Selector */
+async function populateBookingSelector() {
+    try {
+        const response = await fetch('/api/bookings/user/completed', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success && result.bookings) {
+            const selector = document.getElementById('bookingSelector');
+            selector.innerHTML = '<option value="">Select a completed booking...</option>';
+
+            result.bookings.forEach(booking => {
+                if (!booking.already_rated) {
+                    const option = document.createElement('option');
+                    option.value = booking._id;
+                    option.textContent = `${booking.event_date} - ${booking.service_type} (${booking.guests} guests)`;
+                    selector.appendChild(option);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('Error populating booking selector:', error);
+    }
+}
+
+/* Show Ineligibility Modal */
+function showIneligibilityModal() {
+    const modal = document.createElement('div');
+    modal.id = 'ineligibilityModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: modalFadeIn 0.3s ease-out;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            padding: 40px;
+            border-radius: 24px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        ">
+            <button onclick="closeIneligibilityModal()" style="
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(100, 116, 139, 0.1);
+                border: none;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                font-size: 20px;
+                cursor: pointer;
+                color: #64748B;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s ease;
+                backdrop-filter: blur(10px);
+            " onmouseover="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(100, 116, 139, 0.1)'; this.style.transform='scale(1)'">×</button>
+
+            <div style="margin-bottom: 24px;">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #64748B, #475569);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px;
+                    box-shadow: 0 8px 25px rgba(100, 116, 139, 0.3);
+                    animation: iconBounce 0.6s ease-out;
+                ">
+                    <span style="font-size: 32px; color: white;">⏳</span>
+                </div>
+                <h2 style="
+                    margin-bottom: 12px;
+                    color: #1e293b;
+                    font-size: 28px;
+                    font-weight: 800;
+                    background: linear-gradient(135deg, #64748B, #475569);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                ">Complete a Booking First</h2>
+                <p style="
+                    color: #64748B;
+                    margin-bottom: 32px;
+                    font-size: 16px;
+                    line-height: 1.5;
+                    max-width: 320px;
+                    margin-left: auto;
+                    margin-right: auto;
+                ">
+                    You need to complete at least one booking before you can leave a rating. Book our services and experience our quality firsthand!
+                </p>
+            </div>
+
+            <div style="display: flex; gap: 12px; justify-content: center;">
+                <button onclick="closeIneligibilityModal()" style="
+                    background: rgba(100, 116, 139, 0.1);
+                    color: #64748B;
+                    border: 2px solid #e2e8f0;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.borderColor='#cbd5e1'" onmouseout="this.style.background='rgba(100, 116, 139, 0.1)'; this.style.borderColor='#e2e8f0'">Maybe Later</button>
+                <a href="/services" style="
+                    background: linear-gradient(135deg, #C2410C, #F97316);
+                    color: white;
+                    text-decoration: none;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    display: inline-block;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(194, 65, 12, 0.3);
+                " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(194, 65, 12, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(194, 65, 12, 0.3)'">Book Now</a>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function closeIneligibilityModal() {
+    const modal = document.getElementById('ineligibilityModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+/* Rating Modal Functions */
+async function openRatingModal() {
+    // Create modal if it doesn't exist
+    if (!document.getElementById('ratingModal')) {
+        createRatingModal();
+    }
+
+    // Check if user is eligible to rate
+    const eligible = await checkRatingEligibility();
+
+    if (!eligible) {
+        // Show ineligibility message
+        showIneligibilityModal();
+        return;
+    }
+
+    // Populate booking selector with completed bookings
+    await populateBookingSelector();
+
+    document.getElementById('ratingModal').style.display = 'flex';
+}
+
+function createRatingModal() {
+    const modal = document.createElement('div');
+    modal.id = 'ratingModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.75);
+        backdrop-filter: blur(8px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: modalFadeIn 0.3s ease-out;
+    `;
+
+    modal.innerHTML = `
+        <div style="
+            background: linear-gradient(145deg, #ffffff, #f8fafc);
+            padding: 40px;
+            border-radius: 24px;
+            max-width: 480px;
+            width: 90%;
+            text-align: center;
+            position: relative;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.2);
+            animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        ">
+            <button onclick="closeRatingModal()" style="
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(100, 116, 139, 0.1);
+                border: none;
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                font-size: 20px;
+                cursor: pointer;
+                color: #64748B;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.2s ease;
+                backdrop-filter: blur(10px);
+            " onmouseover="this.style.background='rgba(100, 116, 139, 0.2)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(100, 116, 139, 0.1)'; this.style.transform='scale(1)'">×</button>
+
+            <div style="margin-bottom: 24px;">
+                <div style="
+                    width: 80px;
+                    height: 80px;
+                    background: linear-gradient(135deg, #C2410C, #F97316);
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    margin: 0 auto 20px;
+                    box-shadow: 0 8px 25px rgba(194, 65, 12, 0.3);
+                    animation: iconBounce 0.6s ease-out;
+                ">
+                    <span style="font-size: 32px; color: white;">⭐</span>
+                </div>
+                <h2 style="
+                    margin-bottom: 12px;
+                    color: #1e293b;
+                    font-size: 28px;
+                    font-weight: 800;
+                    background: linear-gradient(135deg, #C2410C, #F97316);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                    background-clip: text;
+                ">Rate Our Service</h2>
+                <p style="
+                    color: #64748B;
+                    margin-bottom: 32px;
+                    font-size: 16px;
+                    line-height: 1.5;
+                    max-width: 320px;
+                    margin-left: auto;
+                    margin-right: auto;
+                ">
+                    Your feedback helps us serve you better. How was your experience?
+                </p>
+            </div>
+
+            <div style="
+                margin-bottom: 24px;
+                text-align: left;
+            ">
+                <label for="bookingSelector" style="
+                    display: block;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #374151;
+                    margin-bottom: 8px;
+                ">Select Booking to Rate:</label>
+                <select id="bookingSelector" style="
+                    width: 100%;
+                    padding: 12px 16px;
+                    border: 2px solid #e5e7eb;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    background: white;
+                    color: #374151;
+                    cursor: pointer;
+                    transition: border-color 0.2s ease;
+                " onchange="this.style.borderColor='#fbbf24'">
+                    <option value="">Select a completed booking...</option>
+                </select>
+            </div>
+
+            <div style="
+                display: flex;
+                gap: 12px;
+                margin-bottom: 32px;
+                justify-content: center;
+                flex-wrap: wrap;
+            " id="ratingStarsContainer">
+                <button class="rating-star" data-rating="1" title="Poor">
+                    <span class="star-icon">☆</span>
+                    <span class="star-label">Poor</span>
+                </button>
+                <button class="rating-star" data-rating="2" title="Fair">
+                    <span class="star-icon">☆</span>
+                    <span class="star-label">Fair</span>
+                </button>
+                <button class="rating-star" data-rating="3" title="Good">
+                    <span class="star-icon">☆</span>
+                    <span class="star-label">Good</span>
+                </button>
+                <button class="rating-star" data-rating="4" title="Great">
+                    <span class="star-icon">☆</span>
+                    <span class="star-label">Great</span>
+                </button>
+                <button class="rating-star" data-rating="5" title="Excellent">
+                    <span class="star-icon">☆</span>
+                    <span class="star-label">Excellent</span>
+                </button>
+            </div>
+
+            <button id="submitRatingBtn" onclick="submitUserRating()" style="
+                background: linear-gradient(135deg, #C2410C, #F97316);
+                color: white;
+                border: none;
+                padding: 16px 32px;
+                border-radius: 12px;
+                font-weight: 700;
+                font-size: 16px;
+                cursor: pointer;
+                width: 100%;
+                display: none;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(194, 65, 12, 0.3);
+                position: relative;
+                overflow: hidden;
+            " onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 25px rgba(194, 65, 12, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(194, 65, 12, 0.3)'">
+                <span id="submitBtnText">Submit Rating</span>
+                <div id="submitBtnLoader" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; border: 2px solid rgba(255,255,255,0.3); border-top: 2px solid white; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            </button>
+
+            <div id="ratingMessage" style="
+                margin-top: 20px;
+                font-size: 14px;
+                font-weight: 500;
+                min-height: 20px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            "></div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Enhanced CSS for rating stars and animations
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes modalFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        @keyframes iconBounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-10px);
+            }
+            60% {
+                transform: translateY(-5px);
+            }
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
+        }
+
+        @keyframes starPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes ripple {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(4); opacity: 0; }
+        }
+
+        @keyframes toastSlideIn {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes toastSlideOut {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .rating-star {
+            background: linear-gradient(145deg, #ffffff, #f1f5f9);
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px 12px;
+            cursor: pointer;
+            color: #94a3b8;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 70px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .rating-star::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .rating-star:hover {
+            transform: translateY(-4px) scale(1.05);
+            border-color: #fbbf24;
+            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.3);
+        }
+
+        .rating-star:hover::before {
+            left: 100%;
+        }
+
+        .rating-star.selected {
+            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            border-color: #f59e0b;
+            color: white;
+            box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+            animation: starPulse 0.6s ease-out;
+        }
+
+        .rating-star.selected .star-icon {
+            color: white;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .rating-star .star-icon {
+            font-size: 24px;
+            transition: all 0.3s ease;
+            display: block;
+        }
+
+        .rating-star .star-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+        }
+
+        .rating-star.selected .star-label {
+            opacity: 1;
+        }
+
+        #ratingMessage.success {
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            opacity: 1;
+        }
+
+        #ratingMessage.error {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            opacity: 1;
+        }
+
+        @media(max-width: 640px) {
+            .rating-star {
+                padding: 12px 8px;
+                min-width: 60px;
+            }
+
+            .rating-star .star-icon {
+                font-size: 20px;
+            }
+
+            .rating-star .star-label {
+                font-size: 10px;
+            }
+        }
+
+        @media(max-width: 480px) {
+            .rating-star {
+                padding: 10px 6px;
+                min-width: 50px;
+            }
+
+            .rating-star .star-icon {
+                font-size: 18px;
+            }
+
+            .rating-star .star-label {
+                font-size: 9px;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Enhanced event listeners for stars
+    modal.querySelectorAll('.rating-star').forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.dataset.rating);
+            selectRating(rating);
+        });
+
+        // Add ripple effect on click
+        star.addEventListener('mousedown', function(e) {
+            const ripple = document.createElement('span');
+            ripple.style.cssText = `
+                position: absolute;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.6);
+                transform: scale(0);
+                animation: ripple 0.6s linear;
+                pointer-events: none;
+            `;
+
+            const rect = this.getBoundingClientRect();
+            const size = Math.max(rect.width, rect.height);
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (e.clientX - rect.left - size/2) + 'px';
+            ripple.style.top = (e.clientY - rect.top - size/2) + 'px';
+
+            this.appendChild(ripple);
+            setTimeout(() => ripple.remove(), 600);
+        });
+    });
+}
+
+function closeRatingModal() {
+    const modal = document.getElementById('ratingModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+function selectRating(rating) {
+    // Remove selected class from all stars
+    document.querySelectorAll('.rating-star').forEach(star => {
+        star.classList.remove('selected');
+        star.querySelector('.star-icon').textContent = '☆';
+    });
+
+    // Add selected class to clicked stars and animate
+    document.querySelectorAll('.rating-star').forEach((star, index) => {
+        if (index < rating) {
+            star.classList.add('selected');
+            star.querySelector('.star-icon').textContent = '★';
+
+            // Add sparkle animation
+            star.style.animation = 'none';
+            setTimeout(() => {
+                star.style.animation = 'starPulse 0.6s ease-out';
+            }, 10);
+        }
+    });
+
+    // Store selected rating
+    window.selectedRating = rating;
+
+    // Show submit button with animation
+    const submitBtn = document.getElementById('submitRatingBtn');
+    submitBtn.style.display = 'block';
+    submitBtn.style.animation = 'none';
+    setTimeout(() => {
+        submitBtn.style.animation = 'modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    }, 10);
+
+    // Clear any previous messages
+    const messageEl = document.getElementById('ratingMessage');
+    messageEl.textContent = '';
+    messageEl.className = '';
+    messageEl.style.opacity = '0';
+}
+
+async function submitUserRating() {
+    if (!window.selectedRating) {
+        document.getElementById('ratingMessage').textContent = 'Please select a rating first.';
+        document.getElementById('ratingMessage').style.color = '#EF4444';
+        return;
+    }
+
+    // Check if a booking is selected
+    const selectedBooking = document.getElementById('bookingSelector').value;
+    if (!selectedBooking) {
+        document.getElementById('ratingMessage').textContent = 'Please select a booking to rate.';
+        document.getElementById('ratingMessage').style.color = '#EF4444';
+        return;
+    }
+
+    const submitBtn = document.getElementById('submitRatingBtn');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
+
+    try {
+        const response = await fetch('/api/bookings/submit-rating', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                rating: window.selectedRating,
+                booking_id: selectedBooking,
+                review: `Rated ${window.selectedRating} stars for booking ${selectedBooking}`
+            })
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            document.getElementById('ratingMessage').textContent = 'Thank you for your feedback! Your rating helps us improve our service.';
+            document.getElementById('ratingMessage').style.color = '#10B981';
+            submitBtn.style.display = 'none';
+
+            // Show success alert with appropriate message
+            alert('Thank you! Your rating has been submitted successfully. We appreciate your feedback!');
+
+            // Update the hero rating display immediately with response data
+            if (result.avgRating !== null && result.totalRatings !== null) {
+                updateHeroRatingDisplay(result.avgRating, result.totalRatings);
+            } else {
+                // Fallback to API call if response doesn't have data
+                loadAverageRating();
+            }
+
+            // Close modal after success
+            setTimeout(() => {
+                closeRatingModal();
+            }, 2000);
+        } else {
+            document.getElementById('ratingMessage').textContent = result.message || 'Failed to submit rating.';
+            document.getElementById('ratingMessage').style.color = '#EF4444';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Rating';
+        }
+    } catch (error) {
+        console.error('Error submitting rating:', error);
+        document.getElementById('ratingMessage').textContent = 'Network error. Please try again.';
+        document.getElementById('ratingMessage').style.color = '#EF4444';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Rating';
+    }
+}
 </script>
 
 </body>

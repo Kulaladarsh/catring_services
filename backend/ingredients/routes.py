@@ -19,7 +19,7 @@ def admin_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         if not session.get("admin_logged_in"):
-            return jsonify({"error": "Unauthorized access"}), 401
+            return jsonify({"success": False, "message": "Unauthorized access"}), 401
         return f(*args, **kwargs)
     return wrapper
 
@@ -384,13 +384,18 @@ def get_booking_final_ingredients(booking_id):
     Get final ingredients for a specific booking
     """
     try:
+        # Check if booking exists first
+        booking = orders_collection.find_one({"_id": ObjectId(booking_id)})
+        if not booking:
+            return jsonify({"success": False, "message": "Booking not found"}), 404
+
         final_ingredients = final_ingredients_collection.find_one({"booking_id": booking_id})
 
         if not final_ingredients:
             return jsonify({
                 "success": False,
-                "error": "Final ingredients not found for this booking"
-            }), 404
+                "message": "Final ingredients not generated yet"
+            }), 200
 
         return jsonify({
             "success": True,
@@ -403,7 +408,7 @@ def get_booking_final_ingredients(booking_id):
 
     except Exception as e:
         print(f"Error fetching booking final ingredients: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal server error"}), 500
 
 
 @ingredients_bp.route("/booking/<booking_id>", methods=["PUT"])
@@ -750,6 +755,26 @@ def share_booking_pdf(booking_id):
         return jsonify({"error": str(e)}), 500
 
 
+@ingredients_bp.route("/<booking_id>", methods=["GET"])
+@admin_required
+def get_booking_final_ingredients_legacy(booking_id):
+    """
+    Legacy route: GET /admin/api/ingredients/<booking_id>
+    Redirects to the new route with /booking/ prefix
+    """
+    return get_booking_final_ingredients(booking_id)
+
+
+@ingredients_bp.route("/<booking_id>/send-pdf-email", methods=["POST"])
+@admin_required
+def send_pdf_to_admin_email_legacy(booking_id):
+    """
+    Legacy route: POST /admin/api/ingredients/<booking_id>/send-pdf-email
+    Redirects to the new route with /booking/ prefix
+    """
+    return send_pdf_to_admin_email(booking_id)
+
+
 @ingredients_bp.route("/booking/<booking_id>/send-pdf-email", methods=["POST"])
 @admin_required
 def send_pdf_to_admin_email(booking_id):
@@ -760,12 +785,12 @@ def send_pdf_to_admin_email(booking_id):
         # Get booking details
         booking = orders_collection.find_one({"_id": ObjectId(booking_id)})
         if not booking:
-            return jsonify({"error": "Booking not found"}), 404
+            return jsonify({"success": False, "message": "Booking not found"}), 404
 
         # Get final ingredients
         final_ingredients = final_ingredients_collection.find_one({"booking_id": booking_id})
         if not final_ingredients or not final_ingredients.get("approved_by_admin"):
-            return jsonify({"error": "Final ingredients not approved yet"}), 400
+            return jsonify({"success": False, "message": "Final ingredients not approved yet"}), 400
 
         # Generate PDF
         from backend.utils.pdf_generator import generate_ingredients_pdf
@@ -775,28 +800,38 @@ def send_pdf_to_admin_email(booking_id):
         # Send to predefined admin email (from environment variables)
         import os
         admin_email = os.getenv("ADMIN_EMAIL")  # Predefined admin Gmail address
+        sender_email = os.getenv("MAIL_USERNAME")
+        sender_password = os.getenv("MAIL_PASSWORD")
 
         if not admin_email:
-            return jsonify({"error": "Admin email not configured"}), 500
+            return jsonify({"success": False, "message": "Admin email not configured"}), 200
+
+        if not sender_email or not sender_password:
+            return jsonify({"success": False, "message": "Email credentials not configured"}), 200
 
         # Use existing email function but send to admin email
-        from backend.utils.email import send_pdf_via_email
-        email_sent = send_pdf_via_email(
-            customer_email=admin_email,  # Send to admin email instead of customer
-            customer_name="Admin",  # Generic name for admin
-            pdf_buffer=pdf_buffer,
-            booking_id=booking_id
-        )
+        try:
+            from backend.utils.email import send_pdf_via_email
+            email_sent = send_pdf_via_email(
+                customer_email=admin_email,  # Send to admin email instead of customer
+                customer_name="Admin",  # Generic name for admin
+                pdf_buffer=pdf_buffer,
+                booking_id=booking_id
+            )
 
-        if email_sent:
-            return jsonify({
-                "success": True,
-                "message": "PDF sent to admin email successfully"
-            })
-        else:
-            return jsonify({"error": "Failed to send email"}), 500
+            if email_sent:
+                return jsonify({
+                    "success": True,
+                    "message": "PDF sent to admin email successfully"
+                })
+            else:
+                return jsonify({"success": False, "message": "Failed to send email"}), 200
+
+        except Exception as email_error:
+            print(f"Email sending error: {str(email_error)}")
+            return jsonify({"success": False, "message": f"Email service error: {str(email_error)}"}), 200
 
     except Exception as e:
         print(f"Error sending PDF to admin email: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"success": False, "message": "Internal server error"}), 500
 

@@ -5,9 +5,23 @@ from .db import (
     admin_logs_collection,
     dishes_collection,
     orders_collection,
-    reserved_slots_collection
+    reserved_slots_collection,
+    user_ratings_collection,
+    ratings_collection
 )
 from bson import ObjectId
+import hashlib
+import time
+
+# =========================
+# RATING CACHE FOR PERFORMANCE
+# =========================
+
+_rating_cache = {
+    "data": None,
+    "timestamp": 0
+}
+CACHE_TTL = 300  # 5 minutes cache
 
 # =========================
 # ADMIN AUTHENTICATION
@@ -204,10 +218,10 @@ def check_slot_availability(date, time_slot):
     return existing is None
 
 
-def create_booking(booking_data):
+def create_booking(booking_data, user_ip=None):
     """
     Creates a new booking and reserves the time slot.
-    
+
     Args:
         booking_data: Dictionary containing:
             - customer_name
@@ -221,7 +235,8 @@ def create_booking(booking_data):
             - guests
             - selected_dishes (list of {dish_id, quantity})
             - food_preference
-    
+        user_ip: Client IP address for rating tracking
+
     Returns:
         booking_id if successful, None if slot already booked
     """
@@ -273,6 +288,7 @@ def create_booking(booking_data):
         "status": "Pending",
         "ingredients_sent": False,
         "rating": None,  # Rating from 1-5 stars, submitted after booking completion
+        "user_ip": user_ip,  # Store IP for rating control
         "created_at": datetime.utcnow(),
         "updated_at": datetime.utcnow()
     }
@@ -393,3 +409,264 @@ def get_average_rating():
         return None, 0
     except:
         return None, 0
+
+
+# =========================
+# USER RATINGS MANAGEMENT
+# =========================
+
+def generate_user_identifier(mobile, ip_address):
+    """
+    Generates a hashed identifier for user rating validation.
+
+    Args:
+        mobile: User's mobile number
+        ip_address: User's IP address
+
+    Returns:
+        SHA256 hash of mobile + IP combination
+    """
+    identifier = f"{mobile.strip()}|{ip_address.strip()}"
+    return hashlib.sha256(identifier.encode()).hexdigest()
+
+
+def check_user_already_rated(mobile, ip_address):
+    """
+    Checks if a user has already submitted a rating.
+
+    Args:
+        mobile: User's mobile number
+        ip_address: User's IP address
+
+    Returns:
+        True if already rated, False otherwise
+    """
+    user_hash = generate_user_identifier(mobile, ip_address)
+    existing = user_ratings_collection.find_one({"user_hash": user_hash})
+    return existing is not None
+
+
+def submit_user_rating(mobile, ip_address, rating, user_agent=None):
+    """
+    Submits a user rating with validation.
+
+    Args:
+        mobile: User's mobile number (optional)
+        ip_address: User's IP address
+        rating: Rating value (1-5)
+        user_agent: Optional browser user agent
+
+    Returns:
+        True if submitted successfully, False if already rated or invalid
+    """
+    try:
+        if not (1 <= rating <= 5):
+            return False
+
+        # Check if already rated
+        if check_user_already_rated(mobile or "", ip_address):
+            return False
+
+        # Create rating document
+        user_hash = generate_user_identifier(mobile or "", ip_address)
+        rating_doc = {
+            "user_hash": user_hash,
+            "mobile": mobile.strip() if mobile else "",
+            "ip_address": ip_address.strip(),
+            "user_agent": user_agent,
+            "rating": rating,
+            "created_at": datetime.utcnow()
+        }
+
+        # Insert rating
+        user_ratings_collection.insert_one(rating_doc)
+        return True
+
+    except Exception as e:
+        print(f"Error submitting user rating: {e}")
+        return False
+
+
+def get_user_ratings_average():
+    """
+    Calculates the average rating from user ratings collection.
+
+    Returns:
+        (average_rating, total_count) or (None, 0) if no ratings
+    """
+    try:
+        pipeline = [
+            {"$group": {"_id": None, "average": {"$avg": "$rating"}, "count": {"$sum": 1}}}
+        ]
+        result = list(user_ratings_collection.aggregate(pipeline))
+        if result:
+            return round(result[0]["average"], 1), result[0]["count"]
+        return None, 0
+    except Exception as e:
+        print(f"Error calculating user ratings average: {e}")
+        return None, 0
+
+
+# =========================
+# AUTOMATIC RATING CONTROL
+# =========================
+
+def get_eligible_booking_for_rating(user_ip):
+    """
+    Finds the oldest unrated completed booking for a user IP.
+
+    Args:
+        user_ip: User's IP address
+
+    Returns:
+        booking_id if eligible booking found, None otherwise
+    """
+    try:
+        # Find completed bookings of this IP that are not yet rated
+        # First check bookings with user_ip field, then fallback to IP-based lookup
+        pipeline = [
+            {
+                "$match": {
+                    "$or": [
+                        {"user_ip": user_ip},  # New bookings with IP stored
+                        {"ip_address": user_ip}  # Legacy bookings
+                    ],
+                    "status": "Completed"
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "ratings",  # MongoDB collection name
+                    "localField": "_id",
+                    "foreignField": "booking_id",
+                    "as": "existing_rating"
+                }
+            },
+            {
+                "$match": {
+                    "existing_rating": {"$size": 0}  # No existing rating
+                }
+            },
+            {
+                "$sort": {"event_date": 1}  # Oldest first
+            },
+            {
+                "$limit": 1
+            }
+        ]
+
+        result = list(orders_collection.aggregate(pipeline))
+        if result:
+            return str(result[0]["_id"])
+        return None
+
+    except Exception as e:
+        print(f"Error finding eligible booking for rating: {e}")
+        return None
+
+
+def submit_automatic_rating(user_ip, rating, review=None):
+    """
+    Automatically submits a rating for the oldest eligible completed booking.
+
+    Args:
+        user_ip: User's IP address
+        rating: Rating value (1-5)
+        review: Optional review text
+
+    Returns:
+        True if submitted successfully, False otherwise
+    """
+    try:
+        if not (1 <= rating <= 5):
+            return False
+
+        # Find eligible booking
+        booking_id = get_eligible_booking_for_rating(user_ip)
+        if not booking_id:
+            return False
+
+        # Create rating document
+        rating_doc = {
+            "booking_id": ObjectId(booking_id),
+            "user_ip": user_ip,
+            "rating": rating,
+            "review": review or "",
+            "created_at": datetime.utcnow()
+        }
+
+        # Insert rating
+        result = ratings_collection.insert_one(rating_doc)
+
+        if result.inserted_id:
+            # Update booking status to mark as rated
+            orders_collection.update_one(
+                {"_id": ObjectId(booking_id)},
+                {"$set": {"rating": rating, "updated_at": datetime.utcnow()}}
+            )
+            return True
+
+        return False
+
+    except Exception as e:
+        print(f"Error submitting automatic rating: {e}")
+        return False
+
+
+def check_rating_eligibility(user_ip):
+    """
+    Checks if a user IP is eligible to submit a rating.
+
+    Args:
+        user_ip: User's IP address
+
+    Returns:
+        True if eligible, False otherwise
+    """
+    booking_id = get_eligible_booking_for_rating(user_ip)
+    return booking_id is not None
+
+
+def get_ratings_average():
+    """
+    Calculates the average rating from the orders collection with caching.
+
+    Returns:
+        (average_rating, total_count) or (None, 0) if no ratings
+    """
+    global _rating_cache
+
+    # Check cache first
+    current_time = time.time()
+    if _rating_cache["data"] and (current_time - _rating_cache["timestamp"]) < CACHE_TTL:
+        return _rating_cache["data"]
+
+    try:
+        pipeline = [
+            {"$match": {"rating": {"$ne": None}}},
+            {"$group": {"_id": None, "average": {"$avg": "$rating"}, "count": {"$sum": 1}}}
+        ]
+        result = list(orders_collection.aggregate(pipeline))
+        if result:
+            data = (round(result[0]["average"], 1), result[0]["count"])
+        else:
+            data = (None, 0)
+
+        # Update cache
+        _rating_cache["data"] = data
+        _rating_cache["timestamp"] = current_time
+
+        return data
+    except Exception as e:
+        print(f"Error calculating ratings average: {e}")
+        return None, 0
+
+
+def invalidate_rating_cache():
+    """
+    Clears the rating cache to force fresh calculation.
+    Call this after new ratings are submitted.
+    """
+    global _rating_cache
+    _rating_cache["data"] = None
+    _rating_cache["timestamp"] = 0

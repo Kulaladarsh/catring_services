@@ -67,3 +67,9 @@ final_ingredients_collection = db["final_ingredients"] if db is not None else No
 
 # Notification Collections
 notifications_collection = db["notifications"] if db is not None else None
+
+# User Ratings Collection
+user_ratings_collection = db["user_ratings"] if db is not None else None
+
+# New Automatic Ratings Collection (linked to bookings)
+ratings_collection = db["ratings"] if db is not None else None

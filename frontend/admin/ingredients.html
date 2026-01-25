@@ -24,20 +24,38 @@
     </div>
 
     <div id="ingredients" class="tab-content active">
-        <div class="card">
-            <div class="card-header"><h2 class="card-title">Ingredient Planning Tool</h2></div>
-            <div class="alert">
-                <strong>Note:</strong> This tool is for general planning only. For actual bookings, use the "Finalization" tab to generate booking-specific ingredients.
-            </div>
-            <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
-                <div class="form-group" style="flex-grow: 1; min-width: 200px;">
-                    <label>Number of Guests</label>
-                    <input id="guestCount" type="number" placeholder="e.g. 100" min="1">
+        <!-- Planning Input Card -->
+        <div class="planning-input-card">
+            <div class="planning-header">
+                <div class="planning-icon">
+                    <i class="fas fa-utensils"></i>
                 </div>
-                <button class="btn btn-primary" style="height: 45px;" onclick="generateIngredientListWithUI(this)">Generate Planning List</button>
+                <div class="planning-content">
+                    <h2 class="planning-title">Ingredient Planning Tool</h2>
+                    <p class="planning-subtitle">Plan your ingredients based on guest count</p>
+                </div>
             </div>
-            <div id="ingredientsPlanning" style="margin-top: 30px;"></div>
+            <div class="planning-alert">
+                <i class="fas fa-info-circle"></i>
+                <span>This tool is for general planning only. For actual bookings, use the "Finalization" tab to generate booking-specific ingredients.</span>
+            </div>
+            <div class="planning-form">
+                <div class="guest-input-group">
+                    <label for="guestCount" class="guest-label">
+                        <i class="fas fa-users"></i>
+                        Number of Guests
+                    </label>
+                    <input id="guestCount" type="number" placeholder="e.g. 100" min="1" class="guest-input">
+                </div>
+                <button class="generate-btn" onclick="generateIngredientListWithUI(this)">
+                    <i class="fas fa-calculator"></i>
+                    <span>Generate Planning List</span>
+                </button>
+            </div>
         </div>
+
+        <!-- Ingredients Planning Container -->
+        <div id="ingredientsPlanning" class="ingredients-container"></div>
     </div>
 </main>
 

@@ -134,7 +134,6 @@ async function deleteDish(dishId){
 async function updateDishAvailability(dishId, available){
     try{
         await apiCall(`/admin/api/dishes/${dishId}`, 'PUT', { available });
-        loadStats();
     }catch(e){
         console.error('Error updating dish availability:', e);
         alert('Error updating dish availability');

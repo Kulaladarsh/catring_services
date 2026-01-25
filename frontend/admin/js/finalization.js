@@ -139,15 +139,15 @@ function renderFinalIngredients(bookingId, data){
     });
 
     let html = `
-        <div style="background: var(--bg-body); padding: 24px; border-radius: 10px; margin-bottom: 24px;">
-            <h3 style="margin-bottom: 12px;">Booking: ${bookingId}</h3>
-            <p style="margin-bottom: 8px;"><strong>Status:</strong> <span style="color: ${approved ? 'var(--success)' : 'var(--warning)'}; font-weight: 600;">${approved ? 'Approved' : 'Pending Approval'}</span></p>
-            <p><strong>Ingredients Count:</strong> ${ingredients.length}</p>
+        <div style="background: var(--bg-body); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+            <h3 style="margin-bottom: 8px; font-size: 16px; font-weight: 600;">Booking: ${bookingId}</h3>
+            <p style="margin-bottom: 6px; font-size: 13px;"><strong>Status:</strong> <span style="color: ${approved ? 'var(--success)' : 'var(--warning)'}; font-weight: 600;">${approved ? 'Approved' : 'Pending Approval'}</span></p>
+            <p style="font-size: 13px;"><strong>Ingredients Count:</strong> ${ingredients.length}</p>
         </div>
 
-        <div style="margin-bottom: 24px;">
-            <h4 style="margin-bottom: 16px;">Step 1: Preview & Finalize Ingredients</h4>
-            <div id="ingredientsList" style="max-height: 500px; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: 16px; background: white;">
+        <div style="margin-bottom: 16px;">
+            <h4 style="margin-bottom: 12px; font-size: 15px; font-weight: 600;">Step 1: Preview & Finalize Ingredients</h4>
+            <div id="ingredientsList" style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; padding: 12px; background: white;">
     `;
 
     if(ingredients.length === 0){
@@ -358,7 +358,6 @@ async function confirmAndSubmit(){
         if(response.success){
             alert('Final ingredients confirmed and submitted successfully! Order status updated to "APPROVED".');
             loadFinalIngredients();
-            loadOrders();
         }
     }catch(e){
         alert('Error: ' + e.message);
