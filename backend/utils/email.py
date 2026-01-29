@@ -15,6 +15,28 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Check library availability
+try:
+    import sendgrid
+    SENDGRID_AVAILABLE = True
+except ImportError:
+    SENDGRID_AVAILABLE = False
+    logger.warning("SendGrid library not available")
+
+try:
+    import tenacity
+    TENACITY_AVAILABLE = True
+except ImportError:
+    TENACITY_AVAILABLE = False
+    logger.warning("Tenacity library not available")
+
+try:
+    import email_validator
+    EMAIL_VALIDATOR_AVAILABLE = True
+except ImportError:
+    EMAIL_VALIDATOR_AVAILABLE = False
+    logger.warning("email_validator library not available")
+
 # Email configuration
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
 MAIL_DEFAULT_SENDER = "kulaladarsh1@gmail.com"
@@ -23,6 +45,10 @@ ADMIN_EMAIL = "kulaladarsh1@gmail.com"  # Use the same personal email used for P
 
 def validate_email_address(email):
     """Validate email address format and deliverability."""
+    if not EMAIL_VALIDATOR_AVAILABLE:
+        logger.warning("email_validator not available, skipping validation")
+        return email
+
     try:
         valid = validate_email(email)
         return valid.email
@@ -34,9 +60,12 @@ def validate_email_address(email):
     stop=stop_after_attempt(3),
     wait=wait_exponential(multiplier=1, min=4, max=10),
     retry=retry_if_not_exception_type(ValueError)
-)
+) if TENACITY_AVAILABLE else lambda f: f
 def send_email_via_sendgrid(to_email, subject, html_content, plain_content=None, attachments=None):
     """Send email using SendGrid API with retry logic."""
+    if not SENDGRID_AVAILABLE:
+        raise ValueError("SendGrid library not available")
+
     if not SENDGRID_API_KEY:
         raise ValueError("SENDGRID_API_KEY environment variable not set")
 
@@ -81,7 +110,11 @@ def send_email_async(to_email, subject, html_content, plain_content=None, attach
     """Send email asynchronously to prevent blocking."""
     def send():
         try:
-            send_email_via_sendgrid(to_email, subject, html_content, plain_content, attachments)
+            if SENDGRID_AVAILABLE and SENDGRID_API_KEY:
+                send_email_via_sendgrid(to_email, subject, html_content, plain_content, attachments)
+            else:
+                logger.warning("SendGrid not available, falling back to Gmail SMTP")
+                send_email_via_gmail_smtp(to_email, subject, html_content, attachments[0]['data'] if attachments else b'')
         except Exception as e:
             logger.error(f"Async email sending failed: {str(e)}")
 

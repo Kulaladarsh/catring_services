@@ -253,6 +253,7 @@ def generate_and_email_pdf():
     Admin API: Generate PDF and send via email
     """
     try:
+        print("🔍 Starting generate_and_email_pdf function")  # DEBUG
         data = request.get_json()
 
         print("📥 Received request data:", data)  # DEBUG
@@ -273,6 +274,12 @@ def generate_and_email_pdf():
             print(f"❌ Validation error: {error_msg}")  # DEBUG
             return jsonify({"error": error_msg}), 400
 
+        # Additional validation for ingredients
+        if not isinstance(ingredients, list) or len(ingredients) == 0:
+            error_msg = "Ingredients must be a non-empty list"
+            print(f"❌ Ingredients validation error: {error_msg}")  # DEBUG
+            return jsonify({"error": error_msg}), 400
+
         # Generate PDF
         print("📄 Generating PDF...")  # DEBUG
         pdf_buffer = generate_grocery_pdf(booking_details, ingredients)
@@ -281,16 +288,26 @@ def generate_and_email_pdf():
 
         # Import email function
         print("📨 Importing email function...")  # DEBUG
-        from backend.utils.email import send_email_with_pdf
+        try:
+            from backend.utils.email import send_email_with_pdf
+            print("✅ Email function imported successfully")  # DEBUG
+        except ImportError as ie:
+            print(f"❌ Import error: {ie}")  # DEBUG
+            raise
 
         # Send email
         print(f"📤 Sending email to {recipient_email}...")  # DEBUG
-        result = send_email_with_pdf(
-            recipient_email=recipient_email,
-            pdf_data=pdf_data,
-            subject=f"Grocery List - {booking_details.get('customer_name', 'Customer')}",
-            body_text=None
-        )
+        try:
+            result = send_email_with_pdf(
+                recipient_email=recipient_email,
+                pdf_data=pdf_data,
+                subject=f"Grocery List - {booking_details.get('customer_name', 'Customer')}",
+                body_text=None
+            )
+            print("✅ Email function called successfully")  # DEBUG
+        except Exception as ee:
+            print(f"❌ Email function call error: {ee}")  # DEBUG
+            raise
 
         print(f"📬 Email result: {result}")  # DEBUG
 
