@@ -111,10 +111,15 @@ def send_email_async(to_email, subject, html_content, plain_content=None, attach
     def send():
         try:
             if SENDGRID_AVAILABLE and SENDGRID_API_KEY:
-                send_email_via_sendgrid(to_email, subject, html_content, plain_content, attachments)
+                result = send_email_via_sendgrid(to_email, subject, html_content, plain_content, attachments)
+                if not result.get('success'):
+                    logger.error(f"SendGrid email failed: {result.get('error')}")
             else:
                 logger.warning("SendGrid not available, falling back to Gmail SMTP")
-                send_email_via_gmail_smtp(to_email, subject, html_content, attachments[0]['data'] if attachments else b'')
+                try:
+                    send_email_via_gmail_smtp(to_email, subject, html_content, attachments[0]['data'] if attachments else b'')
+                except Exception as smtp_error:
+                    logger.error(f"Gmail SMTP email failed: {str(smtp_error)}")
         except Exception as e:
             logger.error(f"Async email sending failed: {str(e)}")
 
@@ -705,6 +710,9 @@ def send_email_via_gmail_smtp(to_email, subject, html_content, pdf_data):
         subject: Email subject
         html_content: HTML email content
         pdf_data: PDF file data (bytes)
+
+    Returns:
+        dict: {'success': True/False, 'error': error_message}
     """
     import smtplib
     from email.mime.multipart import MIMEMultipart
@@ -720,7 +728,7 @@ def send_email_via_gmail_smtp(to_email, subject, html_content, pdf_data):
         sender_password = os.getenv("MAIL_PASSWORD")
 
         if not sender_email or not sender_password:
-            raise ValueError("Gmail SMTP credentials not configured in environment variables")
+            return {'success': False, 'error': 'Gmail SMTP credentials not configured in environment variables'}
 
         # Create message
         msg = MIMEMultipart()
@@ -747,10 +755,11 @@ def send_email_via_gmail_smtp(to_email, subject, html_content, pdf_data):
         server.quit()
 
         logger.info(f"Email sent successfully via Gmail SMTP to {to_email}")
+        return {'success': True, 'message': 'Email sent successfully'}
 
     except Exception as e:
         logger.error(f"Gmail SMTP email sending failed: {str(e)}")
-        raise
+        return {'success': False, 'error': str(e)}
 
 
 # =========================

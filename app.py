@@ -100,6 +100,10 @@ try:
     print("✅ PDF API registered at /admin/api/pdf")
 except ImportError as e:
     print(f"⚠️ Could not import PDF routes: {e}")
+except Exception as e:
+    print(f"❌ Error registering PDF routes: {e}")
+    import traceback
+    traceback.print_exc()
 
 # =========================
 # TEST ROUTES
@@ -141,15 +145,15 @@ def health_check():
 
 @app.errorhandler(404)
 def not_found(error):
-    return {"error": "Resource not found"}, 404
+    return jsonify({"success": False, "error": "Resource not found"}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    return {"error": "Internal server error"}, 500
+    return jsonify({"success": False, "error": "Internal server error"}), 500
 
 @app.errorhandler(400)
 def bad_request(error):
-    return {"error": "Bad request"}, 400
+    return jsonify({"success": False, "error": "Bad request"}), 400
 
 # =========================
 # RUN APPLICATION

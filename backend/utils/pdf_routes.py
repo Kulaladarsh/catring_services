@@ -18,6 +18,25 @@ print("=" * 50)
 
 pdf_bp = Blueprint("pdf", __name__, url_prefix="/admin/api/pdf")
 
+# =========================
+# BLUEPRINT ERROR HANDLERS
+# =========================
+
+@pdf_bp.errorhandler(500)
+def pdf_internal_error(error):
+    """Handle 500 errors in PDF blueprint"""
+    return jsonify({"success": False, "error": "PDF service internal error"}), 500
+
+@pdf_bp.errorhandler(400)
+def pdf_bad_request(error):
+    """Handle 400 errors in PDF blueprint"""
+    return jsonify({"success": False, "error": "Bad request"}), 400
+
+@pdf_bp.errorhandler(Exception)
+def pdf_general_error(error):
+    """Handle all other errors in PDF blueprint"""
+    return jsonify({"success": False, "error": "PDF service error"}), 500
+
 
 # =========================
 # DECORATOR: ADMIN REQUIRED
