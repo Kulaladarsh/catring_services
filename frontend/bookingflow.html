@@ -548,13 +548,16 @@ async function loadAvailableSlots(date) {
         if (data.is_fully_booked) {
             infoDiv.textContent = '🚫 All slots are fully booked for this date.';
             infoDiv.className = 'availability-info show error';
-        } else if (data.available_slots.length === 3) {
+        } else if (data.available_slots && data.available_slots.length === 3) {
             infoDiv.textContent = '✅ All time slots available for this date!';
             infoDiv.className = 'availability-info show success';
-        } else {
+        } else if (data.available_slots && data.available_slots.length > 0) {
             const availText = data.available_slots.join(', ');
             infoDiv.textContent = `⚠️ Available slots: ${availText}`;
             infoDiv.className = 'availability-info show warning';
+        } else {
+            infoDiv.textContent = '❌ Failed to load availability data.';
+            infoDiv.className = 'availability-info show error';
         }
 
         updateTimeSlotUI(data);

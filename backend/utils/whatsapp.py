@@ -1,116 +1,141 @@
-import requests
 from flask import current_app
+
 
 def send_whatsapp_message(phone_number, message):
     """
-    Sends WhatsApp message using WhatsApp Business API.
-    
-    NOTE: This is a placeholder implementation.
-    Replace with actual WhatsApp API integration when credentials are available.
-    
-    Recommended APIs:
-    - Twilio WhatsApp API
-    - WhatsApp Business API
-    - MessageBird
-    
-    Args:
-        phone_number: Customer's WhatsApp number (format: +91XXXXXXXXXX)
-        message: Text message to send
-    
-    Returns:
-        True if successful, False otherwise
+    MANUAL WhatsApp sending helper.
+    Prints message for copy–paste into WhatsApp.
     """
-    
+
     try:
-        # Placeholder for WhatsApp API
-        api_key = current_app.config.get('WHATSAPP_API_KEY')
-        api_url = current_app.config.get('WHATSAPP_API_URL')
-        
-        # Example payload structure (adjust based on your API provider)
-        payload = {
-            "phone": phone_number,
-            "message": message,
-            "api_key": api_key
-        }
-        
-        # Uncomment when using real API
-        # response = requests.post(api_url, json=payload)
-        # return response.status_code == 200
-        
-        # For now, just log the message
-        print(f"📱 WhatsApp Message (Placeholder):")
+        print("📱 WhatsApp Message (Manual Copy)")
         print(f"To: {phone_number}")
-        print(f"Message: {message}")
         print("-" * 50)
-        
+        print(message)
+        print("-" * 50)
         return True
-        
+
     except Exception as e:
-        print(f"❌ WhatsApp sending failed: {e}")
+        print(f"❌ WhatsApp message generation failed: {e}")
         return False
 
 
 def send_booking_confirmation_whatsapp(phone_number, customer_name, booking_details):
     """
-    Sends booking confirmation via WhatsApp.
+    Generates booking confirmation WhatsApp message.
     """
+
+    website_url = current_app.config.get('WEBSITE_URL', 'https://chetan-catering-services.onrender.com')
+    rating_url = current_app.config.get('RATING_URL', f'{website_url}/rating')
+
     message = f"""
-🎉 *Booking Confirmed - Chetan Catering Services*
+Booking Confirmation – Omsgr Catering Services
 
 Dear {customer_name},
 
-Your booking has been received!
+Thank you for your booking. We are pleased to confirm the following details:
 
-📅 *Event Details:*
-Date: {booking_details['event_date']}
-Time: {booking_details['time_slot']}
-Guests: {booking_details['guests']}
-Service: {booking_details['service_type']}
+Event Date: {booking_details.get('event_date')}
+Time Slot: {booking_details.get('time_slot')}
+Guests: {booking_details.get('guests')}
+Service Type: {booking_details.get('service_type')}
 
-💰 *Total Amount:* ₹{booking_details['pricing']['total']}
+Total Amount: ₹{booking_details.get('pricing', {}).get('total')}
 
-We will send you the ingredient list within 24 hours.
+The ingredients list will be shared with you via email within 24 hours.
 
-For queries, contact:
-📞 +91 98765 43210
+For any queries, please contact us.
+Phone: +91 733 822 1281
 
-Thank you for choosing us!
-- Omsgr Caterings
-    """
-    
+Visit our website: {website_url}
+
+We would love your feedback! Please rate our service here: {rating_url}
+
+Thank you for choosing Omsgr Caterings.
+"""
+
     return send_whatsapp_message(phone_number, message)
 
 
 def send_ingredients_whatsapp(phone_number, customer_name, booking_details, ingredients_list):
     """
-    Sends ingredients list via WhatsApp.
+    Generates ingredients list WhatsApp message.
     """
-    
-    # Format ingredients
+
+    website_url = current_app.config.get('WEBSITE_URL', 'https://chetan-catering-services.onrender.com')
+    rating_url = current_app.config.get('RATING_URL', f'{website_url}/rating')
+
     if isinstance(ingredients_list, list):
-        ingredients_text = "\n".join([f"• {item}" for item in ingredients_list])
+        ingredients_text = "\n".join([f"- {item}" for item in ingredients_list])
     else:
         ingredients_text = ingredients_list
-    
+
     message = f"""
-📋 *Ingredients List - Catrings*
+Ingredients List – Omsgr Caterings
 
 Dear {customer_name},
 
-Here's your ingredients list:
+Please find below the ingredients required for your event:
 
-📅 *Event:* {booking_details['event_date']} ({booking_details['time_slot']})
-👥 *Guests:* {booking_details['guests']}
+Event Date: {booking_details.get('event_date')}
+Time Slot: {booking_details.get('time_slot')}
+Guests: {booking_details.get('guests')}
 
-🥘 *Required Ingredients:*
+Required Ingredients:
 {ingredients_text}
 
-Please keep these ready at your venue.
+Kindly ensure these items are available at the venue.
 
-Questions? Call us:
-📞 +91 98765 43210
+For assistance, please contact us.
+Phone: +91 733 822 1281
 
-- Catrings
+Visit our website: {website_url}
+
+We would appreciate your feedback! Give us a rating here: {rating_url}
+
+Regards,
+Omsgr Caterings
+"""
+
+    return send_whatsapp_message(phone_number, message)
+
+
+def send_ingredients_pdf_ready_whatsapp(phone_number, customer_name, booking_details):
     """
-    
+    Generates WhatsApp message notifying the customer that
+    the final ingredients PDF has been sent via email.
+    No direct PDF link is included.
+    """
+
+    website_url = current_app.config.get('WEBSITE_URL', 'https://chetan-catering-services.onrender.com')
+    rating_url = current_app.config.get('RATING_URL', f'{website_url}/rating')
+
+    booking_id = booking_details.get('booking_id') or booking_details.get('_id', 'N/A')
+    booking_id_display = (
+        booking_id[:12] if isinstance(booking_id, str) and len(booking_id) > 12 else str(booking_id)
+    )
+
+    booking_date = booking_details.get('booking_date', 'N/A')
+
+    message = f"""Hello {customer_name},
+
+Your final ingredients list is ready.
+
+Booking ID: {booking_id_display}
+Booking Date: {booking_date}
+Event Date: {booking_details.get('event_date', 'N/A')}
+Time Slot: {booking_details.get('time_slot', 'N/A')}
+Guests: {booking_details.get('guests', 'N/A')}
+
+The complete ingredients PDF has been sent to your registered email address.
+(Please check your Inbox or Spam folder)
+
+For any assistance, please contact us.
+Phone: +91 733 822 1281
+
+Visit our website: {website_url}
+
+We value your opinion! Please give us a rating here: {rating_url}
+"""
+
     return send_whatsapp_message(phone_number, message)

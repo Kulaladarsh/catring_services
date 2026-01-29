@@ -258,7 +258,7 @@ def send_ingredients(booking_id):
             return jsonify({"error": "Booking not found"}), 404
 
         # Send via email
-        email_sent = send_ingredients_list(
+        email_result = send_ingredients_list(
             customer_email=booking["email"],
             customer_name=booking["customer_name"],
             booking_details=booking,
@@ -283,7 +283,7 @@ def send_ingredients(booking_id):
         return jsonify({
             "success": True,
             "message": "Ingredients list sent successfully",
-            "email_sent": email_sent,
+            "email_result": email_result,
             "whatsapp_sent": whatsapp_sent
         })
 

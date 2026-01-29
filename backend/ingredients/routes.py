@@ -487,6 +487,27 @@ def approve_booking_final_ingredients(booking_id):
         mark_ingredients_sent(booking_id)
         update_booking_status(booking_id, "APPROVED")
 
+        # Send ingredients finalization email with PDF attachment
+        try:
+            # Get booking details
+            from backend.db import orders_collection
+            booking = orders_collection.find_one({"_id": ObjectId(booking_id)})
+            if booking:
+                # Get final ingredients
+                final_ingredients_doc = final_ingredients_collection.find_one({"booking_id": booking_id})
+                if final_ingredients_doc and final_ingredients_doc.get("ingredients"):
+                    from backend.utils.email import send_ingredients_finalization_email
+                    email_result = send_ingredients_finalization_email(
+                        customer_email=booking.get("email"),
+                        customer_name=booking.get("customer_name"),
+                        booking_details=booking,
+                        ingredients_list=final_ingredients_doc.get("ingredients", [])
+                    )
+                    print(f"Ingredients finalization email sent: {email_result}")
+        except Exception as email_error:
+            print(f"Failed to send ingredients finalization email: {str(email_error)}")
+            # Don't fail the approval if email fails
+
         return jsonify({
             "success": True,
             "message": "Final ingredients approved successfully and order status updated to APPROVED",
@@ -587,47 +608,6 @@ def remove_dish_from_booking(booking_id, dish_name):
         return jsonify({"error": str(e)}), 500
 
 
-@ingredients_bp.route("/booking/<booking_id>/pdf", methods=["GET"])
-@admin_required
-def generate_booking_pdf(booking_id):
-    """
-    ✅ UPDATED: Generate PDF using new comprehensive generator
-    """
-    try:
-        # Get booking details
-        booking = orders_collection.find_one({"_id": ObjectId(booking_id)})
-        if not booking:
-            return jsonify({"error": "Booking not found"}), 404
-
-        # Get final ingredients
-        final_ingredients = final_ingredients_collection.find_one({"booking_id": booking_id})
-        if not final_ingredients or not final_ingredients.get("approved_by_admin"):
-            return jsonify({"error": "Final ingredients not approved yet"}), 400
-
-        # Convert ObjectId to string for PDF generation
-        booking['_id'] = str(booking['_id'])
-        
-        # Generate PDF with NEW comprehensive function
-        from backend.utils.pdf_generator import generate_ingredients_pdf
-        pdf_buffer = generate_ingredients_pdf(booking, final_ingredients.get("ingredients", []))
-
-        from flask import send_file
-        pdf_buffer.seek(0)
-        return send_file(
-            pdf_buffer,
-            as_attachment=True,
-            download_name=f"order_{booking_id[:8]}.pdf",
-            mimetype='application/pdf'
-        )
-
-
-    except Exception as e:
-
-        print(f"Error generating booking PDF: {str(e)}")
-
-        return jsonify({"error": str(e)}), 500
-
-
 @ingredients_bp.route("/booking/<booking_id>/share", methods=["POST"])
 
 @admin_required
@@ -689,24 +669,17 @@ def share_booking_pdf(booking_id):
         
 
         # Send via Email
-
         if share_method in ["email", "both"]:
-
             from backend.utils.email import send_pdf_via_email
 
-            email_sent = send_pdf_via_email(
-
+            email_result = send_pdf_via_email(
                 customer_email=booking.get("email"),
-
                 customer_name=booking.get("customer_name"),
-
                 pdf_buffer=pdf_buffer,
-
                 booking_id=booking_id
-
             )
 
-            results["email_sent"] = email_sent
+            results["email_sent"] = email_result.get("success", False)
 
         
 
@@ -714,23 +687,17 @@ def share_booking_pdf(booking_id):
 
         if share_method in ["whatsapp", "both"]:
 
-            from backend.utils.whatsapp import send_pdf_via_whatsapp
+            from backend.utils.whatsapp import send_ingredients_pdf_ready_whatsapp
 
-            # Generate public PDF URL (you'll need to host PDF temporarily)
+            # No PDF URL passed to WhatsApp to avoid sharing direct link
 
-            pdf_url = f"https://yourdomain.com/api/pdf/{booking_id}"  # Replace with actual URL
-
-            
-
-            whatsapp_link = send_pdf_via_whatsapp(
+            whatsapp_link = send_ingredients_pdf_ready_whatsapp(
 
                 phone_number=booking.get("mobile"),
 
                 customer_name=booking.get("customer_name"),
 
-                booking_id=booking_id,
-
-                pdf_url=pdf_url
+                booking_details=booking
 
             )
 
@@ -812,20 +779,20 @@ def send_pdf_to_admin_email(booking_id):
         # Use existing email function but send to admin email
         try:
             from backend.utils.email import send_pdf_via_email
-            email_sent = send_pdf_via_email(
+            email_result = send_pdf_via_email(
                 customer_email=admin_email,  # Send to admin email instead of customer
                 customer_name="Admin",  # Generic name for admin
                 pdf_buffer=pdf_buffer,
                 booking_id=booking_id
             )
 
-            if email_sent:
+            if email_result.get("success"):
                 return jsonify({
                     "success": True,
                     "message": "PDF sent to admin email successfully"
                 })
             else:
-                return jsonify({"success": False, "message": "Failed to send email"}), 200
+                return jsonify({"success": False, "message": f"Failed to send email: {email_result.get('error', 'Unknown error')}"}), 200
 
         except Exception as email_error:
             print(f"Email sending error: {str(email_error)}")

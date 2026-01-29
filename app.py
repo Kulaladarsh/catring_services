@@ -4,6 +4,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 import os
 from datetime import timedelta
+from config import Config
 
 # Load environment variables
 load_dotenv()
@@ -16,8 +17,7 @@ app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend-backend communication
 
 # Configuration
-app.config['SECRET_KEY'] = os.getenv("FLASK_SECRET_KEY", "your-secret-key-here")
-app.permanent_session_lifetime = timedelta(minutes=180)
+app.config.from_object(Config)
 
 # =========================
 # MONGODB CONNECTION
@@ -121,7 +121,7 @@ def test():
 @app.route("/hi")
 def say_hi():
     return {
-        "message": "Hi! Welcome to Catrings",
+        "message": "Hi! Welcome to Omsgr Catrings",
         "status": "Backend Active",
         "version": "2.0 - With Ingredients & PDF Features"
     }

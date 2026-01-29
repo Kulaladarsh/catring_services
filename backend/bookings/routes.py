@@ -93,7 +93,7 @@ def send_notifications_async(booking, customer_data):
             )
         except Exception as e:
             print(f"Email sending failed: {e}")
-        
+
         try:
             # WhatsApp confirmation
             send_booking_confirmation_whatsapp(
@@ -103,13 +103,13 @@ def send_notifications_async(booking, customer_data):
             )
         except Exception as e:
             print(f"WhatsApp sending failed: {e}")
-        
+
         try:
             # Admin notification
             send_admin_notification(booking)
         except Exception as e:
             print(f"Admin notification failed: {e}")
-    
+
     # Start background thread
     thread = Thread(target=_send)
     thread.daemon = True
@@ -172,33 +172,43 @@ def get_available_slots(date):
     """
     Public API: Returns available time slots for a specific date.
     """
-    date = sanitize_string(date, 10)
-    
-    # Validate date
-    event_date, error = validate_date(date)
-    if error:
+    try:
+        date = sanitize_string(date, 10)
+
+        # Validate date
+        event_date, error = validate_date(date)
+        if error:
+            return jsonify({
+                "error": error,
+                "available_slots": [],
+                "booked_slots": [],
+                "is_fully_booked": True
+            }), 400
+
+        all_slots = ["Morning", "Afternoon", "Night"]
+        available_slots = []
+        booked_slots = []
+
+        for slot in all_slots:
+            if check_slot_availability(date, slot):
+                available_slots.append(slot)
+            else:
+                booked_slots.append(slot)
+
         return jsonify({
-            "error": error,
+            "date": date,
+            "available_slots": available_slots,
+            "booked_slots": booked_slots,
+            "is_fully_booked": len(available_slots) == 0
+        })
+    except Exception as e:
+        # Ensure we always return a properly formatted response
+        return jsonify({
+            "error": f"Failed to fetch available slots: {str(e)}",
             "available_slots": [],
-            "booked_slots": []
-        }), 400
-    
-    all_slots = ["Morning", "Afternoon", "Night"]
-    available_slots = []
-    booked_slots = []
-    
-    for slot in all_slots:
-        if check_slot_availability(date, slot):
-            available_slots.append(slot)
-        else:
-            booked_slots.append(slot)
-    
-    return jsonify({
-        "date": date,
-        "available_slots": available_slots,
-        "booked_slots": booked_slots,
-        "is_fully_booked": len(available_slots) == 0
-    })
+            "booked_slots": [],
+            "is_fully_booked": True
+        }), 500
 
 # =========================
 # GET BOOKED DATES OVERVIEW
@@ -209,7 +219,13 @@ def get_booked_dates():
     """
     Public API: Returns overview of all dates with booking status.
     """
+    print("DEBUG: get_booked_dates called")
     try:
+        # Check if collection exists
+        if reserved_slots_collection is None:
+            print("DEBUG: reserved_slots_collection is None")
+            return jsonify({"error": "Database not connected"}), 500
+
         pipeline = [
             {
                 "$group": {
@@ -223,7 +239,9 @@ def get_booked_dates():
             }
         ]
 
+        print("DEBUG: Running aggregation pipeline")
         booked_dates_result = list(reserved_slots_collection.aggregate(pipeline))
+        print(f"DEBUG: Aggregation result: {booked_dates_result}")
 
         fully_booked_dates = []
         partially_booked_dates = []
@@ -253,13 +271,18 @@ def get_booked_dates():
                     "available_slots": available_slots
                 })
 
-        return jsonify({
+        response = {
             "success": True,
             "fully_booked_dates": fully_booked_dates,
             "partially_booked_dates": partially_booked_dates
-        })
+        }
+        print(f"DEBUG: Returning response: {response}")
+        return jsonify(response)
 
     except Exception as e:
+        print(f"DEBUG: Exception in get_booked_dates: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Failed to fetch booked dates: {str(e)}"}), 500
 
 # =========================
@@ -513,13 +536,13 @@ def send_ingredients(booking_id):
     
     try:
         # Send via email
-        email_sent = send_ingredients_list(
+        email_result = send_ingredients_list(
             customer_email=booking["email"],
             customer_name=booking["customer_name"],
             booking_details=booking,
             ingredients_list=ingredients
         )
-        
+
         # Send via WhatsApp
         whatsapp_sent = send_ingredients_whatsapp(
             phone_number=booking["mobile"],
@@ -527,18 +550,18 @@ def send_ingredients(booking_id):
             booking_details=booking,
             ingredients_list=ingredients
         )
-        
+
         # Mark as sent
         mark_ingredients_sent(booking_id)
-        
+
         # Log action
         username = session.get("admin_username", "unknown")
         log_admin_action(username, f"INGREDIENTS_SENT: {booking_id}")
-        
+
         return jsonify({
             "success": True,
             "message": "Ingredients list sent successfully",
-            "email_sent": email_sent,
+            "email_result": email_result,
             "whatsapp_sent": whatsapp_sent
         })
         

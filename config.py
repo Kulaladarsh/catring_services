@@ -37,3 +37,6 @@ class Config:
     MAX_LOGIN_ATTEMPTS = 5
     ACCOUNT_LOCK_DURATION_MINUTES = 15
     ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "adarshkulal09@gmail.com")  # Default admin email
+
+    # Base URL for PDF links
+    BASE_URL = "https://chetan-catring-services.onrender.com"
