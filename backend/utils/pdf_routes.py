@@ -272,13 +272,13 @@ def generate_and_email_pdf():
             if not recipient_email: missing.append('recipient_email')
             error_msg = f"Missing required fields: {', '.join(missing)}"
             print(f"❌ Validation error: {error_msg}")  # DEBUG
-            return jsonify({"error": error_msg}), 400
+            return jsonify({"success": False, "error": error_msg}), 400
 
         # Additional validation for ingredients
         if not isinstance(ingredients, list) or len(ingredients) == 0:
             error_msg = "Ingredients must be a non-empty list"
             print(f"❌ Ingredients validation error: {error_msg}")  # DEBUG
-            return jsonify({"error": error_msg}), 400
+            return jsonify({"success": False, "error": error_msg}), 400
 
         # Generate PDF
         print("📄 Generating PDF...")  # DEBUG
@@ -293,7 +293,7 @@ def generate_and_email_pdf():
             print("✅ Email function imported successfully")  # DEBUG
         except ImportError as ie:
             print(f"❌ Import error: {ie}")  # DEBUG
-            raise
+            return jsonify({"success": False, "error": f"Email service unavailable: {str(ie)}"}), 500
 
         # Send email
         print(f"📤 Sending email to {recipient_email}...")  # DEBUG
@@ -307,7 +307,7 @@ def generate_and_email_pdf():
             print("✅ Email function called successfully")  # DEBUG
         except Exception as ee:
             print(f"❌ Email function call error: {ee}")  # DEBUG
-            raise
+            return jsonify({"success": False, "error": f"Email sending failed: {str(ee)}"}), 500
 
         print(f"📬 Email result: {result}")  # DEBUG
 
@@ -336,7 +336,7 @@ def generate_and_email_pdf():
         import traceback
         error_trace = traceback.format_exc()
         print(f"💥 Exception occurred:\n{error_trace}")  # DEBUG
-        return jsonify({"error": f"Operation failed: {str(e)}"}), 500
+        return jsonify({"success": False, "error": f"Operation failed: {str(e)}"}), 500
 
 
 # =========================

@@ -760,9 +760,13 @@ def send_pdf_to_admin_email(booking_id):
             return jsonify({"success": False, "message": "Final ingredients not approved yet"}), 400
 
         # Generate PDF
-        from backend.utils.pdf_generator import generate_ingredients_pdf
-        booking['_id'] = str(booking['_id'])
-        pdf_buffer = generate_ingredients_pdf(booking, final_ingredients.get("ingredients", []))
+        try:
+            from backend.utils.pdf_generator import generate_ingredients_pdf
+            booking['_id'] = str(booking['_id'])
+            pdf_buffer = generate_ingredients_pdf(booking, final_ingredients.get("ingredients", []))
+        except Exception as pdf_error:
+            print(f"PDF generation error: {str(pdf_error)}")
+            return jsonify({"success": False, "message": f"PDF generation failed: {str(pdf_error)}"}), 500
 
         # Send to predefined admin email (from environment variables)
         import os
@@ -796,9 +800,9 @@ def send_pdf_to_admin_email(booking_id):
 
         except Exception as email_error:
             print(f"Email sending error: {str(email_error)}")
-            return jsonify({"success": False, "message": f"Email service error: {str(email_error)}"}), 200
+            return jsonify({"success": False, "message": f"Email service error: {str(email_error)}"}), 500
 
     except Exception as e:
         print(f"Error sending PDF to admin email: {str(e)}")
-        return jsonify({"success": False, "message": "Internal server error"}), 500
+        return jsonify({"success": False, "message": f"Internal server error: {str(e)}"}), 500
 

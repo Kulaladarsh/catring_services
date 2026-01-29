@@ -39,9 +39,9 @@ except ImportError:
 
 # Email configuration
 SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
-MAIL_DEFAULT_SENDER = "kulaladarsh1@gmail.com"
-MAIL_USERNAME = "kulaladarsh1@gmail.com"
-ADMIN_EMAIL = "kulaladarsh1@gmail.com"  # Use the same personal email used for PDF sharing
+MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "kulaladarsh1@gmail.com")
+MAIL_USERNAME = os.getenv("MAIL_USERNAME", "kulaladarsh1@gmail.com")
+ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "kulaladarsh1@gmail.com")  # Use the same personal email used for PDF sharing
 
 def validate_email_address(email):
     """Validate email address format and deliverability."""
@@ -751,3 +751,117 @@ def send_email_via_gmail_smtp(to_email, subject, html_content, pdf_data):
     except Exception as e:
         logger.error(f"Gmail SMTP email sending failed: {str(e)}")
         raise
+
+
+# =========================
+# PDF EMAIL SENDING FUNCTION
+# =========================
+
+def send_pdf_via_email(customer_email, customer_name, pdf_buffer, booking_id):
+    """
+    Send PDF attachment via email to customer.
+    Used for sharing final ingredients PDF.
+
+    Args:
+        customer_email: Customer's email address
+        customer_name: Customer's name
+        pdf_buffer: BytesIO object containing the PDF
+        booking_id: Booking ID for reference
+
+    Returns:
+        dict: {'success': True/False, 'error': error_message}
+    """
+    try:
+        validated_email = validate_email_address(customer_email)
+        if not validated_email:
+            return {'success': False, 'error': 'Invalid customer email address'}
+
+        subject = f"📋 Ingredients List - Booking {booking_id[:8]}"
+
+        html_content = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+                .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+                .header {{ background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+                          color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+                .content {{ background: #ffffff; padding: 30px; border: 1px solid #e5e5e5; }}
+                .footer {{ background: #f8f9fa; padding: 20px; text-align: center;
+                          border-radius: 0 0 10px 10px; font-size: 12px; color: #6c757d; }}
+                .highlight {{ background: #d1fae5; padding: 15px; border-left: 4px solid #10B981;
+                            margin: 20px 0; border-radius: 4px; }}
+                .attachment-notice {{ background: #fff3cd; padding: 15px; border: 2px dashed #ffc107;
+                                    border-radius: 8px; text-align: center; margin: 20px 0; }}
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1 style="margin: 0; font-size: 28px;">🍽️ OMSGr Caterings</h1>
+                    <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Your Ingredients List is Ready!</p>
+                </div>
+
+                <div class="content">
+                    <h2 style="color: #10B981; margin-top: 0;">Dear {customer_name},</h2>
+                    <p>Good news! Your ingredients list has been finalized and is ready for review.</p>
+
+                    <div class="attachment-notice">
+                        <h3 style="margin: 0 0 10px 0; color: #856404;">📎 PDF Attached</h3>
+                        <p style="margin: 0;">Please find your complete ingredients list attached to this email as a PDF document.</p>
+                    </div>
+
+                    <div class="highlight">
+                        <strong>✅ Important Instructions:</strong>
+                        <ul style="margin: 10px 0 0 0; padding-left: 20px;">
+                            <li>Please review the attached PDF carefully</li>
+                            <li>Ensure all ingredients are fresh and of good quality</li>
+                            <li>Keep all items ready at the venue before our team arrives</li>
+                            <li>Store perishable items properly until the event</li>
+                            <li>Contact us immediately if you have any questions</li>
+                        </ul>
+                    </div>
+
+                    <p><strong>Need Help?</strong><br>
+                    If you have any questions about the ingredients list or need clarification:</p>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>📞 Phone: +91-XXXXXXXXXX</li>
+                        <li>📧 Email: info@omsgrcaterings.com</li>
+                    </ul>
+
+                    <p style="margin-top: 30px;">We're looking forward to making your event a success!</p>
+                    <p>Best regards,<br><strong>OMSGr Caterings Team</strong></p>
+                </div>
+
+                <div class="footer">
+                    <p style="margin: 0;">This email contains important information about your booking.</p>
+                    <p style="margin: 5px 0 0 0;">© 2024 OMSGr Caterings. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        # Prepare PDF attachment
+        pdf_buffer.seek(0)
+        pdf_data = pdf_buffer.read()
+
+        # Try SendGrid first, fallback to Gmail SMTP
+        if SENDGRID_API_KEY:
+            # Use SendGrid
+            attachments = [{
+                'data': pdf_data,
+                'filename': f'Ingredients_List_{booking_id[:8]}.pdf',
+                'type': 'application/pdf'
+            }]
+            send_email_async(validated_email, subject, html_content, attachments=attachments)
+        else:
+            # Fallback to Gmail SMTP
+            send_email_via_gmail_smtp(validated_email, subject, html_content, pdf_data)
+
+        return {'success': True, 'message': 'Email queued for sending'}
+
+    except Exception as e:
+        logger.error(f"PDF email sending failed: {str(e)}")
+        return {'success': False, 'error': str(e)}
